@@ -67,6 +67,7 @@ bot.hears('🔙 Back to Main Menu', handleBackToMainMenu);
 // Learning topic handlers
 bot.hears(/^📖/, (ctx) => handleLearningTopic(ctx, ctx.message.text));
 
+
 // Main text handler
 bot.on('text', async (ctx) => {
   const session = getUserSession(ctx.from.id);

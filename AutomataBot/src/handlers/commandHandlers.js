@@ -114,6 +114,7 @@ export async function handlePracticeCommand(ctx) {
 export async function handleLearningTopic(ctx, topic) {
   ctx.reply('📚 **Loading lesson...**', { parse_mode: 'Markdown' });
   const response = await generateLearningContent(topic);
+  await bot.telegram.sendChatAction(chatId, 'typing');
   ctx.reply(formatLearningMessage(topic, response), { parse_mode: 'Markdown' });
 }
 
@@ -121,7 +122,9 @@ export async function handleLearningTopic(ctx, topic) {
  * Handle natural language AI questions
  */
 export async function handleNaturalLanguageQuestion(ctx, question) {
-  ctx.reply('🧠 **Thinking...**', { parse_mode: 'Markdown' });
+  ctx.reply('🧠 **Thinking...** please wait a second...!', { parse_mode: 'Markdown' });
+  // Show typing status
+  await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
   const response = await handleAIQuestion(question);
   ctx.reply(formatAIResponse(response), { parse_mode: 'Markdown' });
 }

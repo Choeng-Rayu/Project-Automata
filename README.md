@@ -77,7 +77,7 @@ Add these environment variables in Render dashboard:
 ```
 BOT_TOKEN=your_telegram_bot_token
 MONGODB_URI=your_mongodb_connection_string
-DEEPSEEK_API_KEY=sk-698124ba5ed24bcea3c8d298b73f2f52
+DEEPSEEK_API_KEY=....
 ```
 
 ### Step 4: Deploy

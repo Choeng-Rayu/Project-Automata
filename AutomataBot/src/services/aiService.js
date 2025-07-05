@@ -1,5 +1,6 @@
 // AI Service for DeepSeek integration
 import axios from 'axios';
+import {AIAssistant} from './trainAi.js';
 
 /**
  * Call DeepSeek AI API
@@ -8,6 +9,31 @@ import axios from 'axios';
  * @returns {Promise<string>} AI response
  */
 export async function callDeepSeekAI(prompt, systemMessage = "You are an expert in automata theory and formal languages. Help users understand concepts and solve problems related to finite automata, regular languages, and computational theory.") {
+  try {
+    const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    return response.data.choices[0].message.content;
+  } catch (error) {
+    console.error('❌ DeepSeek API Error:', error.response?.data || error.message);
+    return "I'm sorry, I'm having trouble connecting to my AI assistant right now. Please try again later.";
+  }
+}
+
+// call deepseek for quick reply
+export async function callDeepSeekAIWithoutThink(prompt, systemMessage = new AIAssistant().generateSystemPrompt()) {
   try {
     const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
       model: 'deepseek-chat',
@@ -71,17 +97,23 @@ Finite Automaton:
 
 /**
  * Handle AI questions from users
- * @param {string} question - User question
+ * @param {string} quest/ion - User question
  * @returns {Promise<string>} AI response
  */
+// export async function handleAIQuestion(question) {
+//   const aiSystemPrompt = new AIAssistant().generateSystemPrompt();
+//   // return await callDeepSeekAI(question, systemMessage);
+//   return await callDeepSeekAI(question, aiSystemPrompt);
+// }
+
 export async function handleAIQuestion(question) {
-  const systemMessage = `You are an expert in automata theory, formal languages, and computational theory. 
-  Provide clear, educational explanations with examples when appropriate. 
-  If the user asks about designing automata, provide step-by-step guidance.
-  Keep responses concise but comprehensive.`;
-  
-  return await callDeepSeekAI(question, systemMessage);
+  // Use a minimal system prompt for general user questions to avoid overthinking
+  const quickPrompt = new AIAssistant().generateSystemPrompt();
+  return await callDeepSeekAI(question, quickPrompt);
 }
+
+
+
 
 /**
  * Generate learning content for specific topics
