@@ -74,9 +74,18 @@ bot.on('text', async (ctx) => {
   const text = ctx.message.text;
   
   // Handle natural language questions (AI integration)
-  if (text.includes('?') || text.toLowerCase().includes('explain') || 
-      text.toLowerCase().includes('how') || text.toLowerCase().includes('what') ||
-      text.toLowerCase().includes('help me')) {
+  if (
+        text.includes('?') || 
+        text.toLowerCase().includes('explain') || 
+        text.toLowerCase().includes('how') || 
+        text.toLowerCase().includes('what') ||
+        text.toLowerCase().includes('help me') || 
+        text.toLowerCase().includes('h')||
+        text.toLowerCase().includes('bro') ||
+        text.toLowerCase().includes('rayu')||
+        text.toLowerCase().includes('who')
+
+      ){
     await handleNaturalLanguageQuestion(ctx, text);
     return;
   }
