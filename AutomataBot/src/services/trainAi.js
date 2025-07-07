@@ -17,7 +17,7 @@ class AIAssistant {
             websiteLeader: "https://rayuchoeng-profolio-website.netlify.app/",
             member1: "Tet Elite",
             member2: "Tep SomNang",
-            member3: "Sophal TiangChhay",
+            member3: "Sophal TaingChhay",
             member4: "Lon MengHeng",
             member5: "Ratana Asinike",
             purpose: "Created this bot for free to assist users with their needs in automata theory for Project Automata Course in Term 3 Year 2 for our university"
