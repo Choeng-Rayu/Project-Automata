@@ -4,12 +4,12 @@ dotenv.config();
 import { Telegraf } from 'telegraf';
 
 // Import services and utilities
-import { connectDB } from './src/config/database.js';
+import { connectDB } from './src/handlers/database.js';
 import { getUserSession } from './src/utils/sessionManager.js';
 import { parseDFAInput, checkFAType, simulateFA, nfaToDfa } from './src/utils/automataUtils.js';
 import { minimizeDFA } from './src/algorithms/dfaMinimization.js';
 import { explainAutomataStep } from './src/services/aiService.js';
-import { saveToDatabase } from './src/config/database.js';
+import { saveToDatabase } from './src/handlers/database.js';
 import { sendFormattedResult } from './src/utils/messageFormatter.js';
 
 // Import handlers

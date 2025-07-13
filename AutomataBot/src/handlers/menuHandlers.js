@@ -1,6 +1,6 @@
 // Menu button handlers
 import { getUserSession } from '../utils/sessionManager.js';
-import { getUserHistory } from '../config/database.js';
+import { getUserHistory } from './database.js';
 import { formatHistoryMessage } from '../utils/messageFormatter.js';
 
 /**

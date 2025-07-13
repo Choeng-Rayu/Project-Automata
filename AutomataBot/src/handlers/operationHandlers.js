@@ -2,7 +2,7 @@
 import { parseDFAInput, checkFAType, simulateFA, nfaToDfa } from '../utils/automataUtils.js';
 import { minimizeDFA } from '../algorithms/dfaMinimization.js';
 import { explainAutomataStep } from '../services/aiService.js';
-import { saveToDatabase } from '../config/database.js';
+import { saveToDatabase } from './database.js';
 import { sendFormattedResult, formatTestResult, formatErrorMessage } from '../utils/messageFormatter.js';
 import { updateUserSession } from '../utils/sessionManager.js';
 
