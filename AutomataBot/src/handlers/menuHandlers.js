@@ -1,18 +1,39 @@
-// Menu button handlers
+// ===============================================
+// MENU BUTTON HANDLERS FOR AUTOMATA BOT
+// ===============================================
+// This file implements the six main features through menu button handlers:
+// 1. 🔧 Design FA - Create and analyze finite automata
+// 2. 🧪 Test Input - Simulate string processing on automata  
+// 3. 🔍 Check FA Type - Determine if automaton is DFA or NFA
+// 4. 🔄 NFA→DFA - Convert NFA to DFA using subset construction
+// 5. ⚡ Minimize DFA - Minimize DFA using partition refinement
+// 6. 🧠 AI Help - AI-powered explanations and assistance
+
 import { getUserSession } from '../utils/sessionManager.js';
-import { getUserHistory } from './database.js';
+import { getUserHistory } from '../config/database.js';
 import { formatHistoryMessage } from '../utils/messageFormatter.js';
 
+// ===============================================
+// FEATURE 1: 🔧 DESIGN FA 
+// ===============================================
+// Allows users to create and analyze finite automata using structured input format
+// Supports both DFA and NFA creation with validation and examples
+
 /**
- * Handle Design FA button
+ * Handle Design FA button - MAIN FEATURE 1
+ * This function implements the core "Design FA" feature that allows users to:
+ * - Create finite automata using structured input format
+ * - Validate automaton structure and format
+ * - Get examples for common patterns (even/odd counters, string patterns)
+ * - Support both DFA and NFA creation
  */
 export function handleDesignFA(ctx) {
   const session = getUserSession(ctx.from.id);
-  session.waitingFor = 'fa_definition';
+  session.waitingFor = 'fa_definition'; // Set session state to wait for automaton definition
 
-  const helpText = `📝 **Design Your Finite Automaton**
+  const helpText = `� **Design Your Finite Automaton**
 
-**Format:**
+**📝 Required Format:**
 \`\`\`
 States: q0,q1,q2
 Alphabet: 0,1
@@ -27,9 +48,9 @@ Start: q0
 Final: q2
 \`\`\`
 
-**📚 Common Examples:**
+**📚 Common Pattern Examples:**
 
-**1️⃣ Even number of 1s:**
+**1️⃣ Even number of 1s (DFA):**
 \`\`\`
 States: q0,q1
 Alphabet: 0,1
@@ -42,7 +63,7 @@ Start: q0
 Final: q0
 \`\`\`
 
-**2️⃣ Strings ending with "01":**
+**2️⃣ Strings ending with "01" (DFA):**
 \`\`\`
 States: q0,q1,q2
 Alphabet: 0,1
@@ -66,11 +87,24 @@ Final: q2
   ctx.reply(helpText, { parse_mode: 'Markdown' });
 }
 
+// ===============================================
+// FEATURE 2: 🧪 TEST INPUT
+// ===============================================
+// Simulates string processing on any defined automaton
+// Shows ACCEPTED/REJECTED results with step-by-step simulation
+
 /**
- * Handle Test Input button
+ * Handle Test Input button - MAIN FEATURE 2
+ * This function implements the "Test Input" feature that allows users to:
+ * - Simulate string processing on any defined automaton
+ * - Show ACCEPTED/REJECTED results with step-by-step simulation  
+ * - Work with both DFA and NFA
+ * - Display the execution path through states
  */
 export function handleTestInput(ctx) {
   const session = getUserSession(ctx.from.id);
+  
+  // Check if user has a loaded automaton
   if (!session.currentFA) {
     ctx.reply(`🚫 **No Automaton Loaded**
 
@@ -95,7 +129,7 @@ Then come back to test strings!`, { parse_mode: 'Markdown' });
     return;
   }
 
-  session.waitingFor = 'test_input';
+  session.waitingFor = 'test_input'; // Set session to wait for test string input
 
   const testText = `🧪 **Test Input String**
 
@@ -108,24 +142,48 @@ Send me a string to test against your current automaton.
 • \`1100\` - Longer string
 • \`ε\` - Empty string (just send empty message)
 
-**💡 Tips:**
+**💡 What I'll show you:**
+• ✅/❌ ACCEPTED or REJECTED result
+• 🔄 Step-by-step state transitions
+• 📍 Current state at each symbol
+• 🎯 Final state and acceptance decision
+
+**Tips:**
 • Use only symbols from your alphabet
-• I'll show step-by-step simulation
+• I'll trace the execution path for you
 • Try different patterns to understand your automaton`;
 
   ctx.reply(testText, { parse_mode: 'Markdown' });
 }
 
+// ===============================================
+// FEATURE 3: 🔍 CHECK FA TYPE
+// ===============================================
+// Automatically determines if an automaton is DFA or NFA
+// Analyzes transition functions for determinism
+
 /**
- * Handle Check FA Type button
+ * Handle Check FA Type button - MAIN FEATURE 3
+ * This function implements the "Check FA Type" feature that allows users to:
+ * - Automatically determine if an automaton is DFA or NFA
+ * - Analyze transition functions for determinism
+ * - Provide clear explanations for the classification
  */
 export function handleCheckFAType(ctx) {
   const session = getUserSession(ctx.from.id);
-  session.waitingFor = 'fa_type_check';
+  session.waitingFor = 'fa_type_check'; // Set session to wait for automaton input
 
   const helpText = `🔍 **Check Automaton Type**
 
-Send me an automaton and I'll tell you if it's a DFA or NFA.
+Send me an automaton and I'll analyze whether it's a DFA or NFA.
+
+**🤖 What I analyze:**
+• **Determinism**: Each state has exactly one transition per symbol (DFA)
+• **Nondeterminism**: Multiple transitions or missing transitions (NFA)
+• **Transition completeness**: All state-symbol combinations covered
+• **Epsilon transitions**: Empty string transitions (NFA feature)
+
+**📚 DFA Example:**
 
 **📚 DFA Example (Deterministic):**
 \`\`\`
@@ -164,16 +222,33 @@ Try both examples to see the analysis!`;
   ctx.reply(helpText, { parse_mode: 'Markdown' });
 }
 
+// ===============================================
+// FEATURE 4: 🔄 NFA→DFA CONVERSION
+// ===============================================
+// Converts NFAs to equivalent DFAs using subset construction algorithm
+// Shows the conversion process step-by-step with AI explanations
+
 /**
- * Handle NFA to DFA conversion button
+ * Handle NFA to DFA conversion button - MAIN FEATURE 4
+ * This function implements the "NFA→DFA" feature that allows users to:
+ * - Convert NFAs to equivalent DFAs using subset construction algorithm
+ * - Show the conversion process step-by-step
+ * - Handle epsilon transitions and multiple transitions
+ * - Provide AI-powered explanations of each conversion step
  */
 export function handleNFAToDFA(ctx) {
   const session = getUserSession(ctx.from.id);
-  session.waitingFor = 'nfa_conversion';
+  session.waitingFor = 'nfa_conversion'; // Set session to wait for NFA input
 
   const helpText = `🔄 **Convert NFA to DFA**
 
-Send me an NFA definition and I'll convert it using subset construction.
+Send me an NFA definition and I'll convert it to an equivalent DFA using subset construction.
+
+**🧠 What the algorithm does:**
+• **Subset Construction**: Create DFA states from sets of NFA states
+• **Epsilon Closure**: Handle empty string transitions
+• **Transition Mapping**: Map multiple NFA transitions to single DFA transitions
+• **State Naming**: Generate clear names for the new DFA states
 
 **📚 NFA Example - Strings ending with "01":**
 \`\`\`
@@ -190,39 +265,61 @@ Start: q0
 Final: q2
 \`\`\`
 
-**📚 NFA Example - Contains "11":**
+**📚 More Complex NFA Example:**
 \`\`\`
-States: q0,q1,q2
+States: q0,q1,q2,q3
 Alphabet: 0,1
 Transitions:
 q0,0,q0
 q0,1,q0
 q0,1,q1
-q1,1,q2
-q2,0,q2
-q2,1,q2
+q1,0,q2
+q2,1,q3
 Start: q0
-Final: q2
+Final: q3
 \`\`\`
 
-**💡 Copy any example above to try the conversion!**
-I'll show you the step-by-step process and resulting DFA.`;
+**💡 What I'll show you:**
+• ✨ Equivalent DFA with clear state names
+• 📊 Step-by-step conversion explanation
+• 🔍 How subset construction works
+• 📈 State reduction and optimization
+
+**Note**: If you send a DFA, I'll tell you it's already deterministic!`;
 
   ctx.reply(helpText, { parse_mode: 'Markdown' });
 }
 
+// ===============================================
+// FEATURE 5: ⚡ MINIMIZE DFA
+// ===============================================
+// Minimizes DFAs using partition refinement algorithm
+// Automatically converts NFAs to DFAs before minimization if needed
+
 /**
- * Handle Minimize DFA button
+ * Handle Minimize DFA button - MAIN FEATURE 5
+ * This function implements the "Minimize DFA" feature that allows users to:
+ * - Minimize DFAs using partition refinement algorithm
+ * - Automatically convert NFAs to DFAs before minimization if needed
+ * - Show which states can be merged and why
+ * - Identify already minimal DFAs
  */
 export function handleMinimizeDFA(ctx) {
   const session = getUserSession(ctx.from.id);
-  session.waitingFor = 'dfa_minimization';
+  session.waitingFor = 'dfa_minimization'; // Set session to wait for DFA input
 
   const helpText = `⚡ **Minimize DFA**
 
 Send me a DFA and I'll minimize it using partition refinement algorithm.
 
-**📚 DFA Example - Can be minimized:**
+**🧠 What the algorithm does:**
+• **Initial Partitioning**: Separate final and non-final states
+• **Partition Refinement**: Iteratively split partitions based on transitions
+• **Equivalence Detection**: Find states that behave identically
+• **State Merging**: Combine equivalent states into single states
+• **Optimization**: Remove unreachable and unnecessary states
+
+**📚 DFA Example - Can be minimized (has redundant states):**
 \`\`\`
 States: q0,q1,q2,q3,q4
 Alphabet: 0,1
@@ -241,7 +338,7 @@ Start: q0
 Final: q3
 \`\`\`
 
-**📚 DFA Example - Already minimal:**
+**📚 DFA Example - Already minimal (no redundant states):**
 \`\`\`
 States: q0,q1
 Alphabet: 0,1
@@ -254,47 +351,88 @@ Start: q0
 Final: q0
 \`\`\`
 
-**💡 Try both examples to see the difference!**
-I'll show you which states can be merged and why.`;
+**💡 What I'll show you:**
+• 🔍 State equivalence analysis
+• 📊 Partition refinement steps
+• ✨ Final minimized DFA
+• 📈 Comparison with original (states reduced)
+• 🧠 AI explanation of why states were merged
+
+**Note**: If you send an NFA, I'll convert it to DFA first, then minimize!`;
 
   ctx.reply(helpText, { parse_mode: 'Markdown' });
 }
 
+// ===============================================
+// FEATURE 6: 🧠 AI HELP  
+// ===============================================
+// AI-powered explanations and assistance for automata theory
+
 /**
- * Handle AI Help button
+ * Handle AI Help button - MAIN FEATURE 6
+ * This function implements the "AI Help" feature that provides:
+ * - Natural language question answering using DeepSeek AI
+ * - Step-by-step algorithmic explanations
+ * - Educational content and concept clarification
+ * - Problem-solving assistance and guidance
  */
 export function handleAIHelp(ctx) {
   const helpMessage = `🧠 **AI Assistant Ready!**
 
-I can help you with:
+I can help you with automata theory using natural language!
 
 🎯 **Concept Explanations:**
-• "Explain DFA minimization"
+• "Explain DFA minimization step by step"
 • "What is the difference between DFA and NFA?"
-• "How does subset construction work?"
+• "How does subset construction algorithm work?"
+• "What are regular languages?"
 
 🔧 **Problem Solving:**
 • "Design a DFA that accepts even number of 1s"
-• "Convert this NFA to DFA: [your NFA]"
+• "Convert this NFA to DFA: [paste your NFA]"
 • "Why is my automaton not working?"
+• "How do I test if a string is accepted?"
 
 📚 **Learning Support:**
-• "Give me practice problems"
-• "Explain regular languages"
-• "Show me examples of finite automata"
+• "Give me practice problems for DFA design"
+• "Explain the pumping lemma"
+• "Show me examples of finite automata applications"
+• "What are the formal definitions?"
 
-Just ask me anything about automata theory in natural language!`;
+🎨 **Interactive Features:**
+• Ask questions in plain English
+• Get step-by-step explanations
+• Request examples and tutorials
+• Troubleshoot your automata
+
+💡 **Example Questions:**
+Just type naturally like: "How do I create a DFA that accepts strings with an odd number of zeros?"
+
+**Ready to help! Ask me anything about automata theory! 🚀**`;
 
   ctx.reply(helpMessage, { parse_mode: 'Markdown' });
 }
 
+// ===============================================
+// ADDITIONAL SUPPORT FEATURES
+// ===============================================
+
 /**
- * Handle Learn Mode button
+ * Handle Learn Mode button - Interactive Learning System
+ * Provides structured learning paths and tutorials
  */
 export function handleLearnMode(ctx) {
   const learningMenu = `📚 **Interactive Learning Mode**
 
-Choose a topic to learn:`;
+Choose a topic to learn with step-by-step tutorials:
+
+🎯 **Available Topics:**
+• **📖 DFA Basics** - Deterministic finite automata fundamentals
+• **📖 NFA Basics** - Nondeterministic finite automata concepts  
+• **📖 Conversions** - NFA→DFA conversion techniques
+• **📖 Minimization** - DFA optimization algorithms
+• **📖 Regular Languages** - Formal language theory
+• **📖 Practice Problems** - Hands-on exercises with solutions`;
 
   ctx.reply(learningMenu, {
     reply_markup: {
@@ -311,7 +449,8 @@ Choose a topic to learn:`;
 }
 
 /**
- * Handle My History button
+ * Handle My History button - User Operation History
+ * Shows saved operations and previous work
  */
 export async function handleMyHistory(ctx) {
   try {
