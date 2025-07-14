@@ -1,5 +1,5 @@
 // Command handlers for bot commands
-import { handleAIQuestion, generateLearningContent } from '../services/aiService.js';
+import { handleAIQuestion, generateLearningContent, handleAIQuestionWithVisuals, generateAutomatonExample } from '../services/aiService.js';
 import { formatAIResponse, formatLearningMessage } from '../utils/messageFormatter.js';
 
 /**
@@ -61,27 +61,30 @@ export async function handleExplainCommand(ctx) {
 }
 
 /**
- * Handle /example command
+ * Handle /example command with visual diagrams
  */
 export async function handleExampleCommand(ctx) {
   const type = ctx.message.text.replace('/example', '').trim();
-  let prompt = '';
-  
+
+  ctx.reply('📚 **Generating example...** 📊 Creating visual diagram...', { parse_mode: 'Markdown' });
+
   if (type.toLowerCase().includes('dfa')) {
-    prompt = 'Provide a simple DFA example with explanation. Show the formal definition and a practical example.';
+    await generateAutomatonExample('accepts strings with even number of 1s (DFA example)', ctx);
   } else if (type.toLowerCase().includes('nfa')) {
-    prompt = 'Provide a simple NFA example with explanation. Show how it differs from a DFA.';
+    await generateAutomatonExample('accepts strings ending with "01" (NFA example)', ctx);
   } else {
-    prompt = 'Provide examples of both DFA and NFA with clear explanations and differences.';
+    // Provide both DFA and NFA examples
+    await generateAutomatonExample('accepts strings with even number of 0s (DFA example)', ctx);
+
+    // Small delay before second example
+    setTimeout(async () => {
+      await generateAutomatonExample('accepts strings containing "11" (NFA example)', ctx);
+    }, 2000);
   }
-  
-  ctx.reply('📚 **Generating example...**', { parse_mode: 'Markdown' });
-  const response = await handleAIQuestion(prompt);
-  ctx.reply(`📚 **Example:**\n\n${response}`, { parse_mode: 'Markdown' });
 }
 
 /**
- * Handle /design command
+ * Handle /design command with automatic visual diagram
  */
 export async function handleDesignCommand(ctx) {
   const requirement = ctx.message.text.replace('/design', '').trim();
@@ -89,23 +92,41 @@ export async function handleDesignCommand(ctx) {
     ctx.reply('🔧 **Usage:** `/design [requirement]`\n\nExample: `/design DFA that accepts strings with even number of 1s`', { parse_mode: 'Markdown' });
     return;
   }
-  
-  const prompt = `Design a finite automaton that ${requirement}. Provide the formal definition with states, alphabet, transitions, start state, and final states. Also explain the design logic.`;
-  
-  ctx.reply('🔧 **Designing automaton...**', { parse_mode: 'Markdown' });
-  const response = await handleAIQuestion(prompt);
-  ctx.reply(`🔧 **Design Solution:**\n\n${response}`, { parse_mode: 'Markdown' });
+
+  ctx.reply('🔧 **Designing automaton...** 📊 Generating visual diagram...', { parse_mode: 'Markdown' });
+
+  // Use the enhanced function that provides both text and visual diagram
+  await generateAutomatonExample(requirement, ctx);
 }
 
 /**
- * Handle /practice command
+ * Handle /practice command with solution examples
  */
 export async function handlePracticeCommand(ctx) {
-  const prompt = 'Generate a practice problem for finite automata design. Include the problem statement, difficulty level, and hints for solving it.';
-  
+  // Generate a practice problem first
+  const problemPrompt = 'Generate a practice problem for finite automata design. Include the problem statement, difficulty level, and hints for solving it. End with "Would you like to see the solution?"';
+
   ctx.reply('🎯 **Generating practice problem...**', { parse_mode: 'Markdown' });
-  const response = await handleAIQuestion(prompt);
-  ctx.reply(`🎯 **Practice Problem:**\n\n${response}`, { parse_mode: 'Markdown' });
+  const problemResponse = await handleAIQuestion(problemPrompt);
+
+  // Send the problem
+  await ctx.reply(`🎯 **Practice Problem:**\n\n${problemResponse}`, { parse_mode: 'Markdown' });
+
+  // Automatically provide the solution with visual diagram after a short delay
+  setTimeout(async () => {
+    ctx.reply('💡 **Here\'s the solution with visual diagram:**', { parse_mode: 'Markdown' });
+
+    // Generate common practice problems with solutions
+    const practiceExamples = [
+      'accepts strings with odd length',
+      'accepts strings ending with "00"',
+      'accepts strings with at least two 1s',
+      'accepts strings where every 0 is followed by a 1'
+    ];
+
+    const randomExample = practiceExamples[Math.floor(Math.random() * practiceExamples.length)];
+    await generateAutomatonExample(randomExample, ctx);
+  }, 3000);
 }
 
 /**
@@ -119,14 +140,18 @@ export async function handleLearningTopic(ctx, topic) {
 }
 
 /**
- * Handle natural language AI questions
+ * Handle natural language AI questions with automatic visual examples
  */
 export async function handleNaturalLanguageQuestion(ctx, question) {
-  ctx.reply('🧠 **Thinking...** please wait a second...!', { parse_mode: 'Markdown' });
-  // Show typing status
-  await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
-  const response = await handleAIQuestion(question);
-  ctx.reply(formatAIResponse(response), { parse_mode: 'Markdown' });
+  console.log(`🎯 [HANDLER] handleNaturalLanguageQuestion called with: "${question}"`);
+  try {
+    // Use the enhanced AI handler that automatically provides visuals for design requests
+    await handleAIQuestionWithVisuals(question, ctx);
+    console.log(`✅ [HANDLER] handleAIQuestionWithVisuals completed successfully`);
+  } catch (error) {
+    console.error(`❌ [HANDLER] handleAIQuestionWithVisuals failed:`, error);
+    throw error;
+  }
 }
 
 /**

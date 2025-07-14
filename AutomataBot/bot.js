@@ -104,6 +104,7 @@ import {
 
 // Session operation handlers for multi-step processes
 import { handleSessionOperation } from './src/handlers/operationHandlers.js';
+import { cleanupTempImages } from './src/services/imageService.js';
 
 // ===============================================
 // BOT INITIALIZATION AND SETUP
@@ -124,7 +125,29 @@ bot.command('explain', handleExplainCommand);    // /explain [topic] - Get AI ex
 bot.command('example', handleExampleCommand);    // /example [type] - Request specific examples  
 bot.command('examples', handleExamplesCommand);  // /examples - Show all format examples
 bot.command('design', handleDesignCommand);      // /design [requirement] - AI-assisted design
-bot.command('practice', handlePracticeCommand);  // /practice - Generate practice problems
+bot.command('practice', handlePracticeCommand);
+
+// Test command to directly test image sending
+bot.command('testimage', async (ctx) => {
+  console.log('🧪 [TEST] Direct image test started...');
+  try {
+    console.log('🧪 [TEST] Importing generateAutomatonExample...');
+    const { generateAutomatonExample } = await import('./src/services/aiService.js');
+    console.log('🧪 [TEST] Function imported successfully');
+
+    console.log('🧪 [TEST] Calling generateAutomatonExample...');
+    await generateAutomatonExample('accepts strings with even number of 1s', ctx);
+    console.log('✅ [TEST] Direct image test completed successfully');
+  } catch (error) {
+    console.error('❌ [TEST] Direct image test failed:', error);
+    console.error('❌ [TEST] Error stack:', error.stack);
+    ctx.reply('❌ Test failed: ' + error.message);
+  }
+});
+
+
+
+  // /practice - Generate practice problems
 
 // ===============================================
 // MENU BUTTON HANDLERS REGISTRATION
@@ -162,14 +185,17 @@ bot.hears(/^📖/, (ctx) => handleLearningTopic(ctx, ctx.message.text));
 bot.on('text', async (ctx) => {
   const session = getUserSession(ctx.from.id); // Get or create user session
   const text = ctx.message.text; // Extract message text
+
+  console.log(`📨 [BOT] Received message: "${text}" from user ${ctx.from.id} in chat ${ctx.chat.id}`);
+
+
   
   // ===============================================
   // NATURAL LANGUAGE AI QUESTION DETECTION
   // ===============================================
   // Detect if user is asking a question or needs AI help
   // Keywords that trigger AI assistance
-  if (
-        text.includes('?') ||                          // Questions with question marks
+  const isAIQuestion = text.includes('?') ||                          // Questions with question marks
         text.toLowerCase().includes('explain') ||      // Explanation requests
         text.toLowerCase().includes('how') ||          // How-to questions
         text.toLowerCase().includes('what') ||         // What-is questions
@@ -177,11 +203,30 @@ bot.on('text', async (ctx) => {
         text.toLowerCase().includes('h')||             // Short help
         text.toLowerCase().includes('bro') ||          // Informal help requests
         text.toLowerCase().includes('rayu')||          // Bot name mentions
-        text.toLowerCase().includes('who')             // Who questions
-      ){
-    // Route to AI question handler for natural language processing
-    await handleNaturalLanguageQuestion(ctx, text);
+        text.toLowerCase().includes('who') ||          // Who questions
+        text.toLowerCase().includes('design') ||       // Design requests
+        text.toLowerCase().includes('create') ||       // Create requests
+        text.toLowerCase().includes('example') ||      // Example requests
+        text.toLowerCase().includes('show me') ||      // Show me requests
+        text.toLowerCase().includes('build') ||        // Build requests
+        text.toLowerCase().includes('make') ||         // Make requests
+        text.toLowerCase().includes('construct') ||    // Construct requests
+        text.toLowerCase().includes('draw') ||         // Draw requests
+        text.toLowerCase().includes('diagram');        // Diagram requests
+
+  if (isAIQuestion) {
+    console.log(`🎯 [BOT] AI Question detected: "${text}" - routing to visual AI handler`);
+    try {
+      // Route to AI question handler for natural language processing
+      await handleNaturalLanguageQuestion(ctx, text);
+      console.log(`✅ [BOT] handleNaturalLanguageQuestion completed for: "${text}"`);
+    } catch (error) {
+      console.error(`❌ [BOT] handleNaturalLanguageQuestion failed:`, error);
+      ctx.reply('❌ Sorry, something went wrong. Please try again.');
+    }
     return;
+  } else {
+    console.log(`❌ [BOT] Not detected as AI question: "${text}"`);
   }
   
   // ===============================================
@@ -300,11 +345,16 @@ connectDB().then(() => {
 });
 
 console.log('🤖 Enhanced Automata Bot is starting...');
+console.log('📊 Environment check:');
+console.log('  - BOT_TOKEN:', process.env.BOT_TOKEN ? 'Set' : 'Missing');
+console.log('  - MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
+console.log('  - DEEPSEEK_API_KEY:', process.env.DEEPSEEK_API_KEY ? 'Set' : 'Missing');
 
 // ===============================================
 // BOT STARTUP AND LAUNCH
 // ===============================================
 // Start the bot and display startup information
+console.log('🚀 Launching bot...');
 bot.launch().then(() => {
   console.log('✅ Bot is running successfully!');
   console.log('📁 Modular structure implemented:');
@@ -323,6 +373,17 @@ bot.launch().then(() => {
   console.log('  • 🧠 AI Help - Natural language explanations');
   console.log('  • 📚 Learn Mode - Interactive tutorials');
   console.log('  • 📊 History - Operation tracking and retrieval');
+  console.log('');
+  console.log('🖼️ Image generation enabled for visual automata diagrams');
+  console.log('🗑️ Automatic cleanup scheduled every 5 minutes');
+
+  // Schedule periodic cleanup of temporary image files
+  setInterval(async () => {
+    await cleanupTempImages();
+  }, 5 * 60 * 1000); // Clean up every 5 minutes
+
 }).catch((error) => {
   console.error('❌ Failed to start bot:', error);
+  console.error('Error details:', error.message);
+  console.error('Stack trace:', error.stack);
 });

@@ -16,6 +16,7 @@ An AI-powered Telegram bot for finite automata theory with DeepSeek integration.
 - 📚 **Interactive Learning**: Step-by-step tutorials and concept explanations
 - 🎯 **Practice Problems**: AI-generated exercises with solutions
 - 📊 **Visual Explanations**: Detailed step-by-step process explanations
+- 🖼️ **Visual Diagrams**: Automatic generation of automata diagrams for better understanding
 
 ### User Experience
 - 💾 **History Tracking**: Save and retrieve previous work
@@ -133,7 +134,31 @@ AutomataBot/
 3. **Session Management**: Track user state and context
 4. **Educational Features**: Learning mode and tutorials
 5. **Error Handling**: Robust error management
-6. **Deployment Ready**: Configured for Render.com
+6. **Visual Diagrams**: Automatic image generation for automata
+7. **Deployment Ready**: Configured for Render.com
+
+## 🖼️ Visual Diagram Generation
+
+The bot now automatically generates visual diagrams for all automata operations:
+
+### Features:
+- **Automatic Generation**: Creates diagrams for every automaton operation
+- **Before/After Comparisons**: Shows visual comparisons for conversions and minimizations
+- **Professional Quality**: Clean, labeled diagrams with color-coded states
+- **Instant Cleanup**: Images are automatically deleted after 30 seconds to save space
+
+### What You Get:
+- 🔧 **Design FA**: Visual diagram of your created automaton
+- 🔄 **NFA→DFA**: Side-by-side comparison of original NFA and converted DFA
+- ⚡ **Minimize DFA**: Before and after comparison showing state reduction
+- 🔍 **Check FA Type**: Visual representation with type analysis
+
+### Technical Details:
+- Uses Canvas API for high-quality rendering
+- Automatic circular layout for optimal visualization
+- Color-coded states (Start: Orange, Final: Green, Regular: Blue)
+- Self-loops and transitions clearly labeled
+- Legend and automaton information included
 
 ## Technologies Used 💻
 
