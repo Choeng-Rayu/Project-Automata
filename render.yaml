@@ -3,9 +3,8 @@ services:
     name: enhanced-automata-bot
     env: node
     plan: free
-    rootDir: ./AutomataBot
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: cd AutomataBot && npm install
+    startCommand: cd AutomataBot && npm start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
