@@ -195,7 +195,7 @@ stop
 @enduml
 ```
 
-## 🔄 Sequence Diagram - User Interaction with AI
+00## 🔄 Sequence Diagram - User Interaction with AI
 
 ```plantuml
 @startuml SequenceDiagram_AIInteraction
