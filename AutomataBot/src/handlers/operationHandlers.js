@@ -18,6 +18,14 @@ import { updateUserSession } from '../utils/sessionManager.js';
 import { generateAutomatonImage, generateComparisonImage, generateSimulationImage, cleanupTempImages } from '../services/imageService.js';
 import fs from 'fs-extra';
 
+// Import the new calculators
+import { calculateDFADesign } from '../services/calculators/dfaDesignCalculator.js';
+import { calculateInputTest } from '../services/calculators/inputTestCalculator.js';
+import { calculateFAType } from '../services/calculators/faTypeCalculator.js';
+import { calculateNFAToDFA } from '../services/calculators/nfaToDfaCalculator.js';
+import { calculateDFAMinimization } from '../services/calculators/dfaMinimizationCalculator.js';
+import { calculateRegexOperation } from '../services/calculators/regexCalculator.js';
+
 /**
  * Helper function to send photo with proper error handling and multiple methods
  */
@@ -73,36 +81,62 @@ async function sendPhotoWithFallback(ctx, imagePath, options) {
  */
 export async function handleFADefinition(ctx, session, text) {
   try {
-    // Parse the user input into automaton structure
-    const fa = parseDFAInput(text);
-    
-    // Validate that all required components are present
-    if (!fa.states.length || !fa.alphabet.length || !fa.transitions.length || !fa.startState || !fa.finalStates.length) {
-      ctx.reply(formatErrorMessage('Invalid Format', 'Please check your format. Need help? Ask: "Show me an example automaton"'), { parse_mode: 'Markdown' });
+    // Step 1: Use calculator to process and validate the input
+    const calculationResult = calculateDFADesign(text);
+
+    if (!calculationResult.success) {
+      ctx.reply(formatErrorMessage('Invalid Format', calculationResult.error), { parse_mode: 'Markdown' });
       return;
     }
-    
-    // Store the validated automaton in user session for future operations
-    updateUserSession(ctx.from.id, { currentFA: fa, waitingFor: null });
 
-    // Analyze the automaton type (DFA or NFA)
-    const faType = checkFAType(fa);
+    const { automaton, automatonType, validation, analysis, designIssues, recommendations } = calculationResult;
+
+    // Store the validated automaton in user session for future operations
+    updateUserSession(ctx.from.id, { currentFA: automaton, waitingFor: null });
 
     try {
       // Generate visual diagram of the automaton
-      const imagePath = await generateAutomatonImage(fa, `${faType} Diagram`, 'design');
+      const imagePath = await generateAutomatonImage(automaton, `${automatonType} Diagram`, 'design');
 
-      // Get AI explanation for the type classification
-      const explanation = await explainAutomataStep(fa, 'type');
+      // Step 2: Get enhanced AI explanation with calculator results
+      const enhancedPrompt = `Explain this automaton design with the following analysis:
+
+      Type: ${automatonType}
+      States: ${analysis.stateCount}
+      Alphabet: ${analysis.alphabetSize} symbols
+      Transitions: ${analysis.transitionCount}
+      Completeness: ${analysis.completeness.isComplete ? 'Complete' : 'Incomplete'}
+
+      ${designIssues.length > 0 ? `Issues found: ${designIssues.map(i => i.description).join(', ')}` : 'No issues found'}
+
+      Provide a clear explanation of the automaton structure and any recommendations.`;
+
+      const explanation = await explainAutomataStep(automaton, 'design', enhancedPrompt);
 
       // Send the visual diagram first
       await sendPhotoWithFallback(ctx, imagePath, {
-        caption: `✅ **Automaton Loaded Successfully!**\n\n🔍 **Type:** ${faType}\n📊 **States:** ${fa.states.length}\n🔤 **Alphabet:** ${fa.alphabet.join(', ')}`,
+        caption: `✅ **Automaton Loaded Successfully!**\n\n🔍 **Type:** ${automatonType}\n📊 **States:** ${analysis.stateCount}\n🔤 **Alphabet:** ${automaton.alphabet.join(', ')}\n⚡ **Completeness:** ${analysis.completeness.isComplete ? '✅ Complete' : '⚠️ Incomplete'}`,
         parse_mode: 'Markdown'
       });
 
-      // Send detailed analysis
-      ctx.reply(`**📋 Detailed Analysis:**\n${explanation}`, { parse_mode: 'Markdown' });
+      // Send detailed analysis with calculator insights
+      let detailedAnalysis = `**📋 Detailed Analysis:**\n${explanation}`;
+
+      if (designIssues.length > 0) {
+        detailedAnalysis += `\n\n**⚠️ Design Issues:**\n`;
+        designIssues.forEach(issue => {
+          detailedAnalysis += `• ${issue.description}\n`;
+        });
+      }
+
+      if (recommendations.length > 0) {
+        detailedAnalysis += `\n\n**💡 Recommendations:**\n`;
+        recommendations.forEach(rec => {
+          detailedAnalysis += `• ${rec.description}\n`;
+        });
+      }
+
+      ctx.reply(detailedAnalysis, { parse_mode: 'Markdown' });
 
       // Clean up the image file
       setTimeout(async () => {
@@ -117,9 +151,9 @@ export async function handleFADefinition(ctx, session, text) {
     } catch (imageError) {
       console.error('Error generating image:', imageError);
 
-      // Fallback: send text result only
-      const explanation = await explainAutomataStep(fa, 'type');
-      ctx.reply(`✅ **Automaton Loaded Successfully!**\n\n🔍 **Type:** ${faType}\n📊 **States:** ${fa.states.length}\n🔤 **Alphabet:** ${fa.alphabet.join(', ')}\n\n**Analysis:**\n${explanation}`, { parse_mode: 'Markdown' });
+      // Fallback: send text result only with calculator insights
+      const explanation = await explainAutomataStep(automaton, 'design');
+      ctx.reply(`✅ **Automaton Loaded Successfully!**\n\n🔍 **Type:** ${automatonType}\n📊 **States:** ${analysis.stateCount}\n🔤 **Alphabet:** ${automaton.alphabet.join(', ')}\n\n**Analysis:**\n${explanation}`, { parse_mode: 'Markdown' });
     }
   } catch (error) {
     ctx.reply(formatErrorMessage('Invalid automaton format', 'Please try again or ask for help'), { parse_mode: 'Markdown' });
@@ -149,8 +183,15 @@ export async function handleTestInput(ctx, session, text) {
   // Inform user that simulation is starting
   ctx.reply(`🧪 **Testing Input String: "${text}"** 📊 Generating simulation diagram...`, { parse_mode: 'Markdown' });
 
-  // Simulate the input string on the loaded automaton
-  const result = simulateFA(session.currentFA, text);
+  // Step 1: Use calculator to process the input test
+  const calculationResult = calculateInputTest(session.currentFA, text);
+
+  if (!calculationResult.success) {
+    ctx.reply(formatErrorMessage('Input Test Error', calculationResult.error), { parse_mode: 'Markdown' });
+    return;
+  }
+
+  const { result, executionTrace, analysis, automatonType } = calculationResult;
 
   try {
     // Generate visual simulation diagram showing the path through the automaton
@@ -158,17 +199,41 @@ export async function handleTestInput(ctx, session, text) {
     const resultText = result ? 'ACCEPTED' : 'REJECTED';
     const imagePath = await generateSimulationImage(session.currentFA, text, result);
 
-    // Get AI explanation of the simulation process
-    const explanation = await explainAutomataStep(session.currentFA, 'simulate', text);
+    // Step 2: Get enhanced AI explanation with calculator results
+    const enhancedPrompt = `Explain this string simulation with the following detailed analysis:
+
+    Input: "${text}"
+    Result: ${resultText}
+    Automaton Type: ${automatonType}
+    Steps Executed: ${analysis.stepsExecuted}
+    Path Taken: ${analysis.pathTaken.join(' → ')}
+
+    Execution Trace:
+    ${executionTrace.map(step => `Step ${step.step}: ${step.description}`).join('\n')}
+
+    ${result ? `Acceptance Reason: ${analysis.acceptanceReason}` : `Rejection Reason: ${analysis.rejectionReason}`}
+
+    Provide a clear step-by-step explanation of how the automaton processed this input.`;
+
+    const explanation = await explainAutomataStep(session.currentFA, 'simulate', enhancedPrompt);
 
     // Send the visual simulation diagram
     await sendPhotoWithFallback(ctx, imagePath, {
-      caption: `🧪 **String Simulation Result**\n\n**Input:** \`${text}\`\n**Result:** ${resultEmoji} ${resultText}\n\n📊 Visual simulation showing the path taken through the automaton\n🔴 Red highlights show the execution path`,
+      caption: `🧪 **String Simulation Result**\n\n**Input:** \`${text}\`\n**Result:** ${resultEmoji} ${resultText}\n**Steps:** ${analysis.stepsExecuted}\n**Type:** ${automatonType}\n\n📊 Visual simulation showing the path taken through the automaton\n🔴 Red highlights show the execution path`,
       parse_mode: 'Markdown'
     });
 
-    // Send detailed step-by-step explanation
-    ctx.reply(`**📋 Step-by-step Simulation:**\n${explanation}`, { parse_mode: 'Markdown' });
+    // Send detailed step-by-step explanation with calculator insights
+    let detailedExplanation = `**📋 Step-by-step Simulation:**\n${explanation}`;
+
+    if (executionTrace.length <= 10) { // Show trace for short executions
+      detailedExplanation += `\n\n**🔍 Execution Trace:**\n`;
+      executionTrace.forEach(step => {
+        detailedExplanation += `${step.step}. ${step.description}\n`;
+      });
+    }
+
+    ctx.reply(detailedExplanation, { parse_mode: 'Markdown' });
 
     // Clean up the image file
     setTimeout(async () => {
@@ -183,7 +248,7 @@ export async function handleTestInput(ctx, session, text) {
   } catch (imageError) {
     console.error('Error generating simulation image:', imageError);
 
-    // Fallback: send text result only
+    // Fallback: send text result only with calculator insights
     const explanation = await explainAutomataStep(session.currentFA, 'simulate', text);
     const testResult = formatTestResult(text, result, explanation);
     ctx.reply(testResult, { parse_mode: 'Markdown' });
@@ -207,27 +272,59 @@ export async function handleTestInput(ctx, session, text) {
  */
 export async function handleFATypeCheck(ctx, session, text) {
   try {
-    // Parse the input automaton
-    const fa = parseDFAInput(text);
+    // Step 1: Use calculator to analyze the automaton type
+    const calculationResult = calculateFAType(text);
 
-    // Analyze the automaton type using determinism criteria
-    const faType = checkFAType(fa);
+    if (!calculationResult.success) {
+      ctx.reply(formatErrorMessage('Type Analysis Error', calculationResult.error), { parse_mode: 'Markdown' });
+      return;
+    }
+
+    const { automaton, type, determinismAnalysis, nfaCharacteristics, reasoning } = calculationResult;
 
     try {
       // Generate visual diagram showing the automaton structure
-      const imagePath = await generateAutomatonImage(fa, `${faType} Analysis`, 'type_check');
+      const imagePath = await generateAutomatonImage(automaton, `${type} Analysis`, 'type_check');
 
-      // Get detailed AI explanation of why it's classified as DFA/NFA
-      const explanation = await explainAutomataStep(fa, 'type');
+      // Step 2: Get enhanced AI explanation with calculator results
+      const enhancedPrompt = `Explain why this automaton is classified as ${type} with the following analysis:
+
+      Classification: ${type}
+      Primary Reasons: ${reasoning.primaryReasons.join(', ')}
+
+      Determinism Analysis:
+      - Is Deterministic: ${determinismAnalysis.isDeterministic}
+      - Completeness: ${determinismAnalysis.completeness.completenessPercentage}%
+      - Violations: ${determinismAnalysis.violations.length} found
+
+      ${type === 'NFA' ? `NFA Characteristics:
+      - Multiple Transitions: ${nfaCharacteristics.hasMultipleTransitions}
+      - Missing Transitions: ${nfaCharacteristics.hasMissingTransitions}
+      - Epsilon Transitions: ${nfaCharacteristics.hasEpsilonTransitions}` : ''}
+
+      Counter Examples: ${reasoning.counterExamples.join(', ') || 'None'}
+
+      Provide a clear explanation of the classification with specific examples.`;
+
+      const explanation = await explainAutomataStep(automaton, 'type', enhancedPrompt);
 
       // Send the visual diagram with type analysis
       await sendPhotoWithFallback(ctx, imagePath, {
-        caption: `🔍 **Automaton Type Analysis**\n\n**Result:** ${faType}\n📊 Visual diagram shows the automaton structure`,
+        caption: `🔍 **Automaton Type Analysis**\n\n**Result:** ${type}\n**Completeness:** ${determinismAnalysis.completeness.completenessPercentage}%\n**Issues:** ${determinismAnalysis.violations.length} found\n\n📊 Visual diagram shows the automaton structure`,
         parse_mode: 'Markdown'
       });
 
-      // Send detailed explanation
-      ctx.reply(`**📋 Detailed Explanation:**\n${explanation}`, { parse_mode: 'Markdown' });
+      // Send detailed explanation with calculator insights
+      let detailedExplanation = `**📋 Detailed Explanation:**\n${explanation}`;
+
+      if (reasoning.counterExamples.length > 0) {
+        detailedExplanation += `\n\n**🔍 Counter Examples:**\n`;
+        reasoning.counterExamples.forEach(example => {
+          detailedExplanation += `• ${example}\n`;
+        });
+      }
+
+      ctx.reply(detailedExplanation, { parse_mode: 'Markdown' });
 
       // Clean up the image file
       setTimeout(async () => {
@@ -242,9 +339,9 @@ export async function handleFATypeCheck(ctx, session, text) {
     } catch (imageError) {
       console.error('Error generating image:', imageError);
 
-      // Fallback: send text result only
-      const explanation = await explainAutomataStep(fa, 'type');
-      ctx.reply(`🔍 **Automaton Type Analysis**\n\n**Result:** ${faType}\n\n**Explanation:**\n${explanation}`, { parse_mode: 'Markdown' });
+      // Fallback: send text result only with calculator insights
+      const explanation = await explainAutomataStep(automaton, 'type');
+      ctx.reply(`🔍 **Automaton Type Analysis**\n\n**Result:** ${type}\n**Summary:** ${reasoning.summary}\n\n**Explanation:**\n${explanation}`, { parse_mode: 'Markdown' });
     }
 
     updateUserSession(ctx.from.id, { waitingFor: null });
