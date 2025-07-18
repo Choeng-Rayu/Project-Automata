@@ -17,21 +17,4 @@ services:
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: WEBHOOK_URL
-        value: https://project-automata.onrender.com: web
-    name: enhanced-automata-bot
-    env: node
-    plan: free
-    buildCommand: npm install
-    startCommand: npm start
-    healthCheckPath: /health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: BOT_TOKEN
-        sync: false
-      - key: MONGODB_URI
-        sync: false
-      - key: DEEPSEEK_API_KEY
-        sync: false
-      - key: WEBHOOK_URL
-        value: https://enhanced-automata-bot.onrender.com
+        value: https://project-automata.onrender.com
