@@ -1,0 +1,45 @@
+{
+  "name": "enhanced-automata-bot",
+  "version": "2.0.0",
+  "description": "AI-powered Telegram bot for finite automata theory with DeepSeek integration",
+  "main": "bot.js",
+  "type": "module",
+  "scripts": {
+    "start": "cd AutomataBot && node bot.js",
+    "dev": "cd AutomataBot && node bot.js",
+    "test": "echo \"No tests specified\" && exit 0",
+    "build": "echo \"No build step required\" && exit 0",
+    "verify": "cd AutomataBot && node verify-setup.js",
+    "webhook:set": "cd AutomataBot && node webhook-setup.js set",
+    "webhook:delete": "cd AutomataBot && node webhook-setup.js delete",
+    "webhook:info": "cd AutomataBot && node webhook-setup.js info"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "automata",
+    "dfa",
+    "nfa",
+    "ai",
+    "deepseek"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.10.0",
+    "canvas": "^3.1.2",
+    "dotenv": "^17.0.0",
+    "fs-extra": "^11.3.0",
+    "graphviz": "^0.0.9",
+    "mongodb": "^6.12.0",
+    "multer": "^2.0.1",
+    "nodemon": "^3.1.10",
+    "openai": "^5.8.2",
+    "pdf-parse": "^1.1.1",
+    "sharp": "^0.34.2",
+    "telegraf": "^4.16.3"
+  }
+}
