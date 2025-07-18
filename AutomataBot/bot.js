@@ -51,6 +51,7 @@
 import dotenv from 'dotenv';
 dotenv.config(); // Load environment variables (BOT_TOKEN, MONGODB_URI, DEEPSEEK_API_KEY)
 import { Telegraf } from 'telegraf'; // Telegram Bot Framework
+import http from 'http'; // For health check endpoint
 
 // ===============================================
 // CORE SERVICES AND UTILITIES IMPORTS
@@ -334,6 +335,30 @@ bot.catch((err, ctx) => {
 // Handle process termination signals gracefully
 process.once('SIGINT', () => bot.stop('SIGINT'));   // Handle Ctrl+C
 process.once('SIGTERM', () => bot.stop('SIGTERM')); // Handle termination signal
+
+// ===============================================
+// HEALTH CHECK SERVER FOR RENDER DEPLOYMENT
+// ===============================================
+// Create a simple HTTP server for health checks required by Render
+const PORT = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+  if (req.url === '/health' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'healthy', 
+      service: 'enhanced-automata-bot',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    }));
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  }
+});
+
+server.listen(PORT, () => {
+  console.log(`🏥 Health check server running on port ${PORT}`);
+});
 
 // ===============================================
 // DATABASE INITIALIZATION
