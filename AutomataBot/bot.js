@@ -371,10 +371,10 @@ console.log('🚀 Launching bot...');
 
 // Set up webhook or polling based on environment
 if (process.env.NODE_ENV === 'production') {
-  // Production: Use webhooks with HTTP server
+  // Production: Use webhooks with integrated HTTP server
   console.log('🌐 Production mode: Setting up webhook...');
   
-  // Create HTTP server for Render
+  // Create HTTP server that handles both webhook and health checks
   const server = http.createServer((req, res) => {
     // Health check endpoint
     if (req.url === '/health') {
@@ -400,21 +400,21 @@ if (process.env.NODE_ENV === 'production') {
     res.end('Not Found');
   });
 
-  // Start HTTP server first
-  server.listen(PORT, () => {
-    console.log(`✅ HTTP server listening on port ${PORT}`);
-    console.log(`🔗 Health check available at: http://localhost:${PORT}/health`);
+  // Start bot with webhook using the existing server
+  bot.launch({
+    webhook: {
+      domain: process.env.WEBHOOK_URL || 'https://project-automata.onrender.com',
+      path: WEBHOOK_PATH,
+      cb: server  // Use existing server instead of creating a new one
+    }
+  }).then(() => {
+    console.log('✅ Bot webhook configured successfully!');
     
-    // Then start bot with webhook
-    bot.launch({
-      webhook: {
-        domain: process.env.WEBHOOK_URL || 'https://project-automata.onrender.com',
-        path: WEBHOOK_PATH,
-        port: PORT
-      }
-    }).then(() => {
-      console.log('✅ Bot webhook is running successfully!');
-      console.log(`📡 Webhook URL: ${WEBHOOK_URL}`);
+    // Start the server after bot is configured
+    server.listen(PORT, () => {
+      console.log(`✅ HTTP server listening on port ${PORT}`);
+      console.log(`� Health check available at: http://localhost:${PORT}/health`);
+      console.log(`�📡 Webhook URL: ${WEBHOOK_URL}`);
       
       // Set webhook with Telegram (with retry logic)
       const setWebhookWithRetry = async (retries = 3) => {
@@ -437,11 +437,11 @@ if (process.env.NODE_ENV === 'production') {
       
       setWebhookWithRetry();
       logBotInfo();
-    }).catch((error) => {
-      console.error('❌ Failed to start webhook:', error);
-      console.error('Error details:', error.message);
-      console.error('Stack trace:', error.stack);
     });
+  }).catch((error) => {
+    console.error('❌ Failed to start webhook:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
   });
   
 } else {
