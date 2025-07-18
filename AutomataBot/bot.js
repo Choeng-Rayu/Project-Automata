@@ -4,8 +4,22 @@
 // This bot provides comprehensive automata theory support with AI integration
 // Features include: DFA/NFA operations, conversions, minimization, and AI explanations
 //
-// 🎯 COMPLETE FEATURE LIST:
+// 🎯 COMPLETE FEATURE LIST:// Health check route handler for Telegraf
+const healthCheckHandler = (ctx) => {
+  ctx.body = {
+    status: 'healthy',
+    service: 'enhanced-automata-bot',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    webhook_url: WEBHOOK_URL
+  };
+};
+
 // ===============================================
+// DATABASE INITIALIZATION
+// ============================================================================================
+// DATABASE INITIALIZATION
+// ====================================================================================
 //
 // 🔧 CORE AUTOMATA OPERATIONS:
 //    • Design FA - Create and analyze finite automata with structured input format
@@ -339,50 +353,21 @@ process.once('SIGTERM', () => bot.stop('SIGTERM')); // Handle termination signal
 // ===============================================
 // WEBHOOK SERVER FOR RENDER DEPLOYMENT
 // ===============================================
-// Create HTTP server for webhooks and health checks
-const PORT = process.env.PORT || 3000;
+// Configuration for webhook deployment
+const PORT = process.env.PORT || 10000;
 const WEBHOOK_PATH = `/webhook/${BOT_TOKEN}`;
-const WEBHOOK_URL = process.env.WEBHOOK_URL || `https://enhanced-automata-bot.onrender.com${WEBHOOK_PATH}`;
+const WEBHOOK_URL = process.env.WEBHOOK_URL ? `${process.env.WEBHOOK_URL}${WEBHOOK_PATH}` : `https://project-automata.onrender.com${WEBHOOK_PATH}`;
 
-const server = http.createServer((req, res) => {
-  // Health check endpoint
-  if (req.url === '/health' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      status: 'healthy', 
-      service: 'enhanced-automata-bot',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      webhook_url: WEBHOOK_URL
-    }));
-    return;
-  }
-
-  // Webhook endpoint for Telegram
-  if (req.url === WEBHOOK_PATH && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        const update = JSON.parse(body);
-        bot.handleUpdate(update);
-        res.writeHead(200);
-        res.end('OK');
-      } catch (error) {
-        console.error('❌ Webhook error:', error);
-        res.writeHead(400);
-        res.end('Bad Request');
-      }
-    });
-    return;
-  }
-
-  // Default response
-  res.writeHead(404, { 'Content-Type': 'text/plain' });
-  res.end('Not Found');
-});
+// Health check route handler for Telegraf
+const healthCheckHandler = (ctx) => {
+  ctx.body = {
+    status: 'healthy',
+    service: 'enhanced-automata-bot',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    webhook_url: WEBHOOK_URL
+  };
+};
 
 server.listen(PORT, () => {
   console.log(`� Webhook server running on port ${PORT}`);
