@@ -4,22 +4,8 @@
 // This bot provides comprehensive automata theory support with AI integration
 // Features include: DFA/NFA operations, conversions, minimization, and AI explanations
 //
-// 🎯 COMPLETE FEATURE LIST:// Health check route handler for Telegraf
-const healthCheckHandler = (ctx) => {
-  ctx.body = {
-    status: 'healthy',
-    service: 'enhanced-automata-bot',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    webhook_url: WEBHOOK_URL
-  };
-};
-
+// 🎯 COMPLETE FEATURE LIST:
 // ===============================================
-// DATABASE INITIALIZATION
-// ============================================================================================
-// DATABASE INITIALIZATION
-// ====================================================================================
 //
 // 🔧 CORE AUTOMATA OPERATIONS:
 //    • Design FA - Create and analyze finite automata with structured input format
@@ -127,6 +113,24 @@ import { cleanupTempImages } from './src/services/imageService.js';
 
 const BOT_TOKEN = process.env.BOT_TOKEN; // Telegram bot token from environment
 const bot = new Telegraf(BOT_TOKEN); // Create Telegraf bot instance
+
+// ===============================================
+// HEALTH CHECK ENDPOINT
+// ===============================================
+// Add health check route for Render monitoring
+bot.use((ctx, next) => {
+  if (ctx.request && ctx.request.url === '/health') {
+    ctx.status = 200;
+    ctx.body = {
+      status: 'healthy',
+      service: 'enhanced-automata-bot',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    };
+    return;
+  }
+  return next();
+});
 
 // ===============================================
 // COMMAND HANDLERS REGISTRATION
@@ -351,29 +355,15 @@ process.once('SIGINT', () => bot.stop('SIGINT'));   // Handle Ctrl+C
 process.once('SIGTERM', () => bot.stop('SIGTERM')); // Handle termination signal
 
 // ===============================================
-// WEBHOOK SERVER FOR RENDER DEPLOYMENT
+// WEBHOOK CONFIGURATION FOR RENDER DEPLOYMENT
 // ===============================================
-// Configuration for webhook deployment
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 const WEBHOOK_PATH = `/webhook/${BOT_TOKEN}`;
 const WEBHOOK_URL = process.env.WEBHOOK_URL ? `${process.env.WEBHOOK_URL}${WEBHOOK_PATH}` : `https://project-automata.onrender.com${WEBHOOK_PATH}`;
 
-// Health check route handler for Telegraf
-const healthCheckHandler = (ctx) => {
-  ctx.body = {
-    status: 'healthy',
-    service: 'enhanced-automata-bot',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    webhook_url: WEBHOOK_URL
-  };
-};
-
-server.listen(PORT, () => {
-  console.log(`� Webhook server running on port ${PORT}`);
-  console.log(`📡 Webhook path: ${WEBHOOK_PATH}`);
-  console.log(`🔗 Webhook URL: ${WEBHOOK_URL}`);
-});
+console.log(`🌐 Webhook will run on port ${PORT}`);
+console.log(`📡 Webhook path: ${WEBHOOK_PATH}`);
+console.log(`🔗 Webhook URL: ${WEBHOOK_URL}`);
 
 // ===============================================
 // DATABASE INITIALIZATION
@@ -404,7 +394,6 @@ if (process.env.NODE_ENV === 'production') {
   
   bot.launch({
     webhook: {
-      domain: WEBHOOK_URL.replace(WEBHOOK_PATH, ''),
       port: PORT,
       path: WEBHOOK_PATH
     }
