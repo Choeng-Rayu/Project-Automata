@@ -115,24 +115,6 @@ const BOT_TOKEN = process.env.BOT_TOKEN; // Telegram bot token from environment
 const bot = new Telegraf(BOT_TOKEN); // Create Telegraf bot instance
 
 // ===============================================
-// HEALTH CHECK ENDPOINT
-// ===============================================
-// Add health check route for Render monitoring
-bot.use((ctx, next) => {
-  if (ctx.request && ctx.request.url === '/health') {
-    ctx.status = 200;
-    ctx.body = {
-      status: 'healthy',
-      service: 'enhanced-automata-bot',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    };
-    return;
-  }
-  return next();
-});
-
-// ===============================================
 // COMMAND HANDLERS REGISTRATION
 // ===============================================
 // Register handlers for slash commands that users can type
@@ -389,30 +371,77 @@ console.log('🚀 Launching bot...');
 
 // Set up webhook or polling based on environment
 if (process.env.NODE_ENV === 'production') {
-  // Production: Use webhooks
+  // Production: Use webhooks with HTTP server
   console.log('🌐 Production mode: Setting up webhook...');
   
-  bot.launch({
-    webhook: {
-      port: PORT,
-      path: WEBHOOK_PATH
+  // Create HTTP server for Render
+  const server = http.createServer((req, res) => {
+    // Health check endpoint
+    if (req.url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'healthy',
+        service: 'enhanced-automata-bot',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+      }));
+      return;
     }
-  }).then(() => {
-    console.log('✅ Bot webhook is running successfully!');
-    console.log(`📡 Webhook URL: ${WEBHOOK_URL}`);
     
-    // Set webhook with Telegram
-    bot.telegram.setWebhook(WEBHOOK_URL).then(() => {
-      console.log('✅ Webhook registered with Telegram');
+    // Default response for root path
+    if (req.url === '/') {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('Enhanced Automata Bot is running!');
+      return;
+    }
+    
+    // For other paths, return 404
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  });
+
+  // Start HTTP server first
+  server.listen(PORT, () => {
+    console.log(`✅ HTTP server listening on port ${PORT}`);
+    console.log(`🔗 Health check available at: http://localhost:${PORT}/health`);
+    
+    // Then start bot with webhook
+    bot.launch({
+      webhook: {
+        domain: process.env.WEBHOOK_URL || 'https://project-automata.onrender.com',
+        path: WEBHOOK_PATH,
+        port: PORT
+      }
+    }).then(() => {
+      console.log('✅ Bot webhook is running successfully!');
+      console.log(`📡 Webhook URL: ${WEBHOOK_URL}`);
+      
+      // Set webhook with Telegram (with retry logic)
+      const setWebhookWithRetry = async (retries = 3) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            await bot.telegram.setWebhook(WEBHOOK_URL);
+            console.log('✅ Webhook registered with Telegram');
+            break;
+          } catch (error) {
+            console.error(`❌ Attempt ${i + 1} failed to set webhook:`, error.message);
+            if (i === retries - 1) {
+              console.error('❌ All webhook registration attempts failed');
+            } else {
+              console.log(`⏳ Retrying in 5 seconds...`);
+              await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+          }
+        }
+      };
+      
+      setWebhookWithRetry();
+      logBotInfo();
     }).catch((error) => {
-      console.error('❌ Failed to set webhook:', error);
+      console.error('❌ Failed to start webhook:', error);
+      console.error('Error details:', error.message);
+      console.error('Stack trace:', error.stack);
     });
-    
-    logBotInfo();
-  }).catch((error) => {
-    console.error('❌ Failed to start webhook:', error);
-    console.error('Error details:', error.message);
-    console.error('Stack trace:', error.stack);
   });
   
 } else {
