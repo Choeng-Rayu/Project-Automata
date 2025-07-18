@@ -337,27 +337,57 @@ process.once('SIGINT', () => bot.stop('SIGINT'));   // Handle Ctrl+C
 process.once('SIGTERM', () => bot.stop('SIGTERM')); // Handle termination signal
 
 // ===============================================
-// HEALTH CHECK SERVER FOR RENDER DEPLOYMENT
+// WEBHOOK SERVER FOR RENDER DEPLOYMENT
 // ===============================================
-// Create a simple HTTP server for health checks required by Render
+// Create HTTP server for webhooks and health checks
 const PORT = process.env.PORT || 3000;
+const WEBHOOK_PATH = `/webhook/${BOT_TOKEN}`;
+const WEBHOOK_URL = process.env.WEBHOOK_URL || `https://enhanced-automata-bot.onrender.com${WEBHOOK_PATH}`;
+
 const server = http.createServer((req, res) => {
+  // Health check endpoint
   if (req.url === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       status: 'healthy', 
       service: 'enhanced-automata-bot',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
+      webhook_url: WEBHOOK_URL
     }));
-  } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found');
+    return;
   }
+
+  // Webhook endpoint for Telegram
+  if (req.url === WEBHOOK_PATH && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        const update = JSON.parse(body);
+        bot.handleUpdate(update);
+        res.writeHead(200);
+        res.end('OK');
+      } catch (error) {
+        console.error('❌ Webhook error:', error);
+        res.writeHead(400);
+        res.end('Bad Request');
+      }
+    });
+    return;
+  }
+
+  // Default response
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('Not Found');
 });
 
 server.listen(PORT, () => {
-  console.log(`🏥 Health check server running on port ${PORT}`);
+  console.log(`� Webhook server running on port ${PORT}`);
+  console.log(`📡 Webhook path: ${WEBHOOK_PATH}`);
+  console.log(`🔗 Webhook URL: ${WEBHOOK_URL}`);
 });
 
 // ===============================================
@@ -377,12 +407,56 @@ console.log('  - MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
 console.log('  - DEEPSEEK_API_KEY:', process.env.DEEPSEEK_API_KEY ? 'Set' : 'Missing');
 
 // ===============================================
-// BOT STARTUP AND LAUNCH
+// BOT STARTUP AND WEBHOOK SETUP
 // ===============================================
-// Start the bot and display startup information
+// Start the bot and set up webhook for production deployment
 console.log('🚀 Launching bot...');
-bot.launch().then(() => {
-  console.log('✅ Bot is running successfully!');
+
+// Set up webhook or polling based on environment
+if (process.env.NODE_ENV === 'production') {
+  // Production: Use webhooks
+  console.log('🌐 Production mode: Setting up webhook...');
+  
+  bot.launch({
+    webhook: {
+      domain: WEBHOOK_URL.replace(WEBHOOK_PATH, ''),
+      port: PORT,
+      path: WEBHOOK_PATH
+    }
+  }).then(() => {
+    console.log('✅ Bot webhook is running successfully!');
+    console.log(`📡 Webhook URL: ${WEBHOOK_URL}`);
+    
+    // Set webhook with Telegram
+    bot.telegram.setWebhook(WEBHOOK_URL).then(() => {
+      console.log('✅ Webhook registered with Telegram');
+    }).catch((error) => {
+      console.error('❌ Failed to set webhook:', error);
+    });
+    
+    logBotInfo();
+  }).catch((error) => {
+    console.error('❌ Failed to start webhook:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+  });
+  
+} else {
+  // Development: Use polling
+  console.log('🔧 Development mode: Using polling...');
+  
+  bot.launch().then(() => {
+    console.log('✅ Bot polling is running successfully!');
+    logBotInfo();
+  }).catch((error) => {
+    console.error('❌ Failed to start bot:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+  });
+}
+
+// Function to log bot information
+function logBotInfo() {
   console.log('📁 Modular structure implemented:');
   console.log('  • src/config/ - Database configuration');
   console.log('  • src/services/ - AI and external services');
@@ -407,9 +481,4 @@ bot.launch().then(() => {
   setInterval(async () => {
     await cleanupTempImages();
   }, 5 * 60 * 1000); // Clean up every 5 minutes
-
-}).catch((error) => {
-  console.error('❌ Failed to start bot:', error);
-  console.error('Error details:', error.message);
-  console.error('Stack trace:', error.stack);
-});
+}

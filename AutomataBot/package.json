@@ -6,9 +6,13 @@
   "type": "module",
   "scripts": {
     "start": "node bot.js",
-    "dev": "nodemon bot.js",
+    "dev": "node bot.js",
     "test": "echo \"No tests specified\" && exit 0",
-    "build": "echo \"No build step required\" && exit 0"
+    "build": "echo \"No build step required\" && exit 0",
+    "verify": "node verify-setup.js",
+    "webhook:set": "node webhook-setup.js set",
+    "webhook:delete": "node webhook-setup.js delete",
+    "webhook:info": "node webhook-setup.js info"
   },
   "keywords": [
     "telegram",

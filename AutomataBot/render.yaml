@@ -15,3 +15,5 @@ services:
         sync: false
       - key: DEEPSEEK_API_KEY
         sync: false
+      - key: WEBHOOK_URL
+        value: https://enhanced-automata-bot.onrender.com
