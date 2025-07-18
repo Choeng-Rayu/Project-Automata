@@ -81,18 +81,32 @@ async function sendPhotoWithFallback(ctx, imagePath, options) {
  */
 export async function handleFADefinition(ctx, session, text) {
   try {
+    console.log(`🔧 [FA DEFINITION] Processing automaton for user ${ctx.from.id}`);
+
     // Step 1: Use calculator to process and validate the input
     const calculationResult = calculateDFADesign(text);
 
     if (!calculationResult.success) {
+      console.log(`❌ [FA DEFINITION] Validation failed:`, calculationResult.error);
       ctx.reply(formatErrorMessage('Invalid Format', calculationResult.error), { parse_mode: 'Markdown' });
       return;
     }
 
     const { automaton, automatonType, validation, analysis, designIssues, recommendations } = calculationResult;
 
+    console.log(`✅ [FA DEFINITION] Automaton validated:`, {
+      type: automatonType,
+      states: automaton.states.length,
+      alphabet: automaton.alphabet.length,
+      transitions: automaton.transitions.length
+    });
+
     // Store the validated automaton in user session for future operations
-    updateUserSession(ctx.from.id, { currentFA: automaton, waitingFor: null });
+    updateUserSession(ctx.from.id, {
+      currentFA: automaton,
+      waitingFor: null,
+      lastOperation: 'design_fa'
+    });
 
     try {
       // Generate visual diagram of the automaton
@@ -174,9 +188,42 @@ export async function handleFADefinition(ctx, session, text) {
  * - AI-powered execution path explanations
  */
 export async function handleTestInput(ctx, session, text) {
+  console.log(`🧪 [TEST INPUT] Starting test for user ${ctx.from.id}`);
+  console.log(`🧪 [TEST INPUT] Session state:`, {
+    hasFA: !!session.currentFA,
+    waitingFor: session.waitingFor,
+    faStates: session.currentFA ? session.currentFA.states?.length : 0
+  });
+
   // Ensure user has loaded an automaton first
   if (!session.currentFA) {
-    ctx.reply('🚫 No automaton loaded. Please design one first.');
+    console.log(`❌ [TEST INPUT] No automaton found in session for user ${ctx.from.id}`);
+
+    const errorMessage = `🚫 **No Automaton Loaded**
+
+Please design an automaton first using "🔧 Design FA"
+
+**Quick Example - Copy and paste:**
+\`\`\`
+States: q0,q1,q2
+Alphabet: 0,1
+Transitions:
+q0,0,q1
+q0,1,q0
+q1,0,q2
+q1,1,q0
+q2,0,q2
+q2,1,q2
+Start: q0
+Final: q2
+\`\`\`
+
+Then come back to test strings!`;
+
+    ctx.reply(errorMessage, { parse_mode: 'Markdown' });
+
+    // Clear the waiting state since we can't proceed
+    updateUserSession(ctx.from.id, { waitingFor: null });
     return;
   }
 

@@ -187,9 +187,20 @@ bot.on('text', async (ctx) => {
   const text = ctx.message.text; // Extract message text
 
   console.log(`📨 [BOT] Received message: "${text}" from user ${ctx.from.id} in chat ${ctx.chat.id}`);
+  console.log(`📨 [BOT] Session state: waitingFor=${session.waitingFor}, hasFA=${!!session.currentFA}`);
 
+  // ===============================================
+  // SESSION-BASED OPERATION HANDLING (PRIORITY)
+  // ===============================================
+  // Handle multi-step operations where bot is waiting for specific input
+  // (e.g., waiting for automaton definition, test string, etc.)
+  // This takes PRIORITY over AI question detection to avoid conflicts
+  if (session.waitingFor) {
+    console.log(`🔄 [BOT] Session operation active: ${session.waitingFor} - routing to session handler`);
+    await handleSessionOperation(ctx, session, text);
+    return;
+  }
 
-  
   // ===============================================
   // NATURAL LANGUAGE AI QUESTION DETECTION
   // ===============================================
@@ -227,16 +238,6 @@ bot.on('text', async (ctx) => {
     return;
   } else {
     console.log(`❌ [BOT] Not detected as AI question: "${text}"`);
-  }
-  
-  // ===============================================
-  // SESSION-BASED OPERATION HANDLING
-  // ===============================================
-  // Handle multi-step operations where bot is waiting for specific input
-  // (e.g., waiting for automaton definition, test string, etc.)
-  if (session.waitingFor) {
-    await handleSessionOperation(ctx, session, text);
-    return;
   }
   
   // ===============================================
