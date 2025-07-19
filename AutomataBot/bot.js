@@ -51,7 +51,7 @@
 import dotenv from 'dotenv';
 dotenv.config(); // Load environment variables (BOT_TOKEN, MONGODB_URI, DEEPSEEK_API_KEY)
 import { Telegraf } from 'telegraf'; // Telegram Bot Framework
-import http from 'http'; // For health check endpoint
+import express from 'express'; // Express.js for HTTP server
 
 // ===============================================
 // CORE SERVICES AND UTILITIES IMPORTS
@@ -371,19 +371,33 @@ console.log('🚀 Launching bot...');
 
 // Set up webhook or polling based on environment
 if (process.env.NODE_ENV === 'production') {
-  // Production: Use webhooks
-  console.log('🌐 Production mode: Setting up webhook...');
+  // Production: Use webhooks with Express.js
+  console.log('🌐 Production mode: Setting up webhook with Express...');
   
-  // Start bot with webhook - let Telegraf create its own server
-  bot.launch({
-    webhook: {
-      domain: process.env.WEBHOOK_URL || 'https://project-automata.onrender.com',
-      path: WEBHOOK_PATH,
-      port: PORT
-    }
-  }).then(() => {
-    console.log('✅ Bot webhook configured successfully!');
-    console.log(`🌐 Server running on port ${PORT}`);
+  // Create Express app
+  const app = express();
+  
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      service: 'enhanced-automata-bot',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+  
+  // Root endpoint
+  app.get('/', (req, res) => {
+    res.send('Enhanced Automata Bot is running!');
+  });
+  
+  // Set up webhook endpoint for Telegraf
+  app.use(bot.webhookCallback(WEBHOOK_PATH));
+  
+  // Start Express server
+  app.listen(PORT, () => {
+    console.log(`🌐 Express server running on port ${PORT}`);
     console.log(`🏥 Health check available at: ${process.env.WEBHOOK_URL || 'https://project-automata.onrender.com'}/health`);
     console.log(`📡 Webhook URL: ${WEBHOOK_URL}`);
     
@@ -408,10 +422,6 @@ if (process.env.NODE_ENV === 'production') {
     
     setWebhookWithRetry();
     logBotInfo();
-  }).catch((error) => {
-    console.error('❌ Failed to start webhook:', error);
-    console.error('Error details:', error.message);
-    console.error('Stack trace:', error.stack);
   });
   
 } else {
