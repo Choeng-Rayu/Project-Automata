@@ -1,3 +1,5 @@
+console.log('🚀 Starting AutomataBot...');
+
 // ===============================================
 // ENHANCED TELEGRAM BOT FOR FINITE AUTOMATA
 // ===============================================

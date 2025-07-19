@@ -1,0 +1,72 @@
+@startuml AutomataBot_Sequence_Simple
+
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam participant {
+    BackgroundColor #E3F2FD
+    BorderColor #2196F3
+}
+
+title AutomataBot - Sequence Diagram (Simplified)\nCore Feature Interactions
+
+actor User
+participant "Bot" as Bot
+participant "Menu Handler" as Menu
+participant "Automata Utils" as Utils
+participant "AI Service" as AI
+participant "Session" as Session
+participant "Database" as DB
+
+== Bot Start ==
+User -> Bot: /start
+Bot -> User: Welcome + Main Menu
+
+== Design FA Feature ==
+User -> Bot: Click "🔧 Design FA"
+Bot -> Menu: handleDesignFA()
+Menu -> User: Show input format
+
+User -> Bot: Submit automaton definition
+Bot -> Utils: parseDFAInput(text)
+Utils -> Utils: Parse & validate
+Utils -> Bot: Parsed automaton
+
+Bot -> Session: Store automaton
+Bot -> AI: Generate explanation
+AI -> Bot: AI response
+Bot -> User: Success + explanation
+
+== Test Input Feature ==
+User -> Bot: Click "🧪 Test Input"
+Bot -> Session: Check automaton exists
+Session -> Bot: Automaton data
+
+Bot -> User: Request test string
+User -> Bot: Submit "0110"
+Bot -> Utils: simulateFA(fa, "0110")
+Utils -> Bot: Execution result
+Bot -> User: ACCEPT/REJECT + trace
+
+== AI Help Feature ==
+User -> Bot: Click "🧠 AI Help"
+User -> Bot: Ask "How does DFA work?"
+Bot -> AI: Process question
+AI -> AI: Generate explanation
+AI -> Bot: Educational response
+Bot -> User: Formatted explanation
+
+== Save & Continue ==
+Bot -> DB: Save operation
+Bot -> Session: Update state
+Bot -> User: Show menu options
+
+note over User, DB
+    **Simplified Flow:**
+    • User interaction → Menu handling
+    • Core algorithm execution
+    • AI explanation generation
+    • Session & database management
+    • Formatted user response
+end note
+
+@enduml

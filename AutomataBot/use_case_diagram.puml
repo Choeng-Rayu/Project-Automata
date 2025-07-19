@@ -1,0 +1,84 @@
+@startuml AutomataBot_UseCases_Simple
+
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam usecase {
+    BackgroundColor #E8F5E8
+    BorderColor #4CAF50
+}
+skinparam actor {
+    BackgroundColor #FFE0B2
+    BorderColor #FF9800
+}
+
+title AutomataBot - Use Cases (Simplified)
+
+' Primary Actor
+actor "User" as user
+
+' External Systems
+actor "AI Service" as ai
+actor "Database" as db
+
+' System boundary
+rectangle "AutomataBot System" {
+    
+    ' Core Features (6 main operations)
+    usecase "🔧 Design FA" as UC1
+    usecase "🧪 Test Input" as UC2
+    usecase "🔍 Check FA Type" as UC3
+    usecase "🔄 Convert NFA→DFA" as UC4
+    usecase "⚡ Minimize DFA" as UC5
+    usecase "🧠 AI Help" as UC6
+    
+    ' Supporting Features
+    usecase "Start Bot Session" as UC7
+    usecase "View History" as UC8
+    usecase "Get Examples" as UC9
+}
+
+' User interactions with core features
+user --> UC1 : creates automata
+user --> UC2 : tests strings
+user --> UC3 : checks type
+user --> UC4 : converts NFA
+user --> UC5 : minimizes DFA
+user --> UC6 : asks questions
+user --> UC7 : starts session
+user --> UC8 : views history
+user --> UC9 : gets examples
+
+' Include relationships
+UC2 .> UC1 : <<include>>
+UC3 .> UC1 : <<include>>
+UC4 .> UC1 : <<include>>
+UC5 .> UC1 : <<include>>
+UC6 .> UC9 : <<include>>
+
+' External dependencies
+UC6 --> ai : requests explanations
+UC8 --> db : retrieves data
+UC1 --> db : saves automata
+
+note top of user
+    **All User Types:**
+    • Students learning theory
+    • Instructors teaching
+    • Researchers analyzing
+end note
+
+note bottom of UC1
+    **Core Feature**
+    Creates DFA/NFA with format:
+    States, Alphabet, Transitions,
+    Start State, Final States
+end note
+
+note right of UC6
+    **AI Integration**
+    Natural language processing
+    Educational explanations
+    Visual diagram generation
+end note
+
+@enduml
