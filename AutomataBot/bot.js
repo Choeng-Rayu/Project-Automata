@@ -371,38 +371,15 @@ console.log('🚀 Launching bot...');
 
 // Set up webhook or polling based on environment
 if (process.env.NODE_ENV === 'production') {
-  // Production: Use webhooks with integrated HTTP server
+  // Production: Use webhooks
   console.log('🌐 Production mode: Setting up webhook...');
   
-  // Start bot with webhook - let Telegraf handle everything
+  // Start bot with webhook - let Telegraf create its own server
   bot.launch({
     webhook: {
       domain: process.env.WEBHOOK_URL || 'https://project-automata.onrender.com',
       path: WEBHOOK_PATH,
-      port: PORT,
-      cb: (req, res) => {
-        // Custom callback for handling non-webhook requests
-        if (req.url === '/health') {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            status: 'healthy',
-            service: 'enhanced-automata-bot',
-            timestamp: new Date().toISOString(),
-            uptime: process.uptime()
-          }));
-          return;
-        }
-        
-        if (req.url === '/') {
-          res.writeHead(200, { 'Content-Type': 'text/plain' });
-          res.end('Enhanced Automata Bot is running!');
-          return;
-        }
-        
-        // For other non-webhook paths, return 404
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('Not Found');
-      }
+      port: PORT
     }
   }).then(() => {
     console.log('✅ Bot webhook configured successfully!');
