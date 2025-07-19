@@ -431,7 +431,6 @@ if (process.env.NODE_ENV === 'production') {
     
     setWebhookWithRetry();
     logBotInfo();
-    });
   }).catch((error) => {
     console.error('❌ Failed to start webhook:', error);
     console.error('Error details:', error.message);
