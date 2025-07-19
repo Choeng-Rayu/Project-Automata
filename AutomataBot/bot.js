@@ -197,6 +197,10 @@ bot.on('text', async (ctx) => {
   // This takes PRIORITY over AI question detection to avoid conflicts
   if (session.waitingFor) {
     console.log(`🔄 [BOT] Session operation active: ${session.waitingFor} - routing to session handler`);
+
+    // Show typing indicator for session operations
+    await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
     await handleSessionOperation(ctx, session, text);
     return;
   }
@@ -227,6 +231,10 @@ bot.on('text', async (ctx) => {
 
   if (isAIQuestion) {
     console.log(`🎯 [BOT] AI Question detected: "${text}" - routing to visual AI handler`);
+
+    // Show typing indicator for AI processing
+    await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
     try {
       // Route to AI question handler for natural language processing
       await handleNaturalLanguageQuestion(ctx, text);

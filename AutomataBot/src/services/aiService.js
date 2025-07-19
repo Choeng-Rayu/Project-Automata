@@ -391,6 +391,9 @@ export async function handleAIQuestionWithVisuals(question, ctx) {
     console.log(`🔍 [AI-VISUAL] Starting handleAIQuestionWithVisuals with: "${question}"`);
     console.log(`🔍 [AI-VISUAL] Context info - Chat ID: ${ctx.chat?.id}, User ID: ${ctx.from?.id}`);
 
+    // Show typing indicator immediately
+    await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
     // Enhanced detection for design/example requests
     const lowerQuestion = question.toLowerCase();
     const isDesignRequest = lowerQuestion.includes('design') ||
