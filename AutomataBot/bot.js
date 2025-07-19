@@ -377,6 +377,9 @@ if (process.env.NODE_ENV === 'production') {
   // Create Express app
   const app = express();
   
+  // Add middleware to parse JSON bodies (required for Telegram webhooks)
+  app.use(express.json());
+  
   // Health check endpoint
   app.get('/health', (req, res) => {
     res.json({
