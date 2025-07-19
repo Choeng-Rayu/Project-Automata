@@ -374,69 +374,63 @@ if (process.env.NODE_ENV === 'production') {
   // Production: Use webhooks with integrated HTTP server
   console.log('🌐 Production mode: Setting up webhook...');
   
-  // Create HTTP server that handles both webhook and health checks
-  const server = http.createServer((req, res) => {
-    // Health check endpoint
-    if (req.url === '/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'healthy',
-        service: 'enhanced-automata-bot',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime()
-      }));
-      return;
-    }
-    
-    // Default response for root path
-    if (req.url === '/') {
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.end('Enhanced Automata Bot is running!');
-      return;
-    }
-    
-    // For other paths, return 404
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found');
-  });
-
-  // Start bot with webhook using the existing server
+  // Start bot with webhook - let Telegraf handle everything
   bot.launch({
     webhook: {
       domain: process.env.WEBHOOK_URL || 'https://project-automata.onrender.com',
       path: WEBHOOK_PATH,
-      cb: server  // Use existing server instead of creating a new one
+      port: PORT,
+      cb: (req, res) => {
+        // Custom callback for handling non-webhook requests
+        if (req.url === '/health') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            status: 'healthy',
+            service: 'enhanced-automata-bot',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime()
+          }));
+          return;
+        }
+        
+        if (req.url === '/') {
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end('Enhanced Automata Bot is running!');
+          return;
+        }
+        
+        // For other non-webhook paths, return 404
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not Found');
+      }
     }
   }).then(() => {
     console.log('✅ Bot webhook configured successfully!');
+    console.log(`🌐 Server running on port ${PORT}`);
+    console.log(`🏥 Health check available at: ${process.env.WEBHOOK_URL || 'https://project-automata.onrender.com'}/health`);
+    console.log(`📡 Webhook URL: ${WEBHOOK_URL}`);
     
-    // Start the server after bot is configured
-    server.listen(PORT, () => {
-      console.log(`✅ HTTP server listening on port ${PORT}`);
-      console.log(`� Health check available at: http://localhost:${PORT}/health`);
-      console.log(`�📡 Webhook URL: ${WEBHOOK_URL}`);
-      
-      // Set webhook with Telegram (with retry logic)
-      const setWebhookWithRetry = async (retries = 3) => {
-        for (let i = 0; i < retries; i++) {
-          try {
-            await bot.telegram.setWebhook(WEBHOOK_URL);
-            console.log('✅ Webhook registered with Telegram');
-            break;
-          } catch (error) {
-            console.error(`❌ Attempt ${i + 1} failed to set webhook:`, error.message);
-            if (i === retries - 1) {
-              console.error('❌ All webhook registration attempts failed');
-            } else {
-              console.log(`⏳ Retrying in 5 seconds...`);
-              await new Promise(resolve => setTimeout(resolve, 5000));
-            }
+    // Set webhook with Telegram (with retry logic)
+    const setWebhookWithRetry = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          await bot.telegram.setWebhook(WEBHOOK_URL);
+          console.log('✅ Webhook registered with Telegram');
+          break;
+        } catch (error) {
+          console.error(`❌ Attempt ${i + 1} failed to set webhook:`, error.message);
+          if (i === retries - 1) {
+            console.error('❌ All webhook registration attempts failed');
+          } else {
+            console.log(`⏳ Retrying in 5 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 5000));
           }
         }
-      };
-      
-      setWebhookWithRetry();
-      logBotInfo();
+      }
+    };
+    
+    setWebhookWithRetry();
+    logBotInfo();
     });
   }).catch((error) => {
     console.error('❌ Failed to start webhook:', error);
