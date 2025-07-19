@@ -51,6 +51,7 @@
 import dotenv from 'dotenv';
 dotenv.config(); // Load environment variables (BOT_TOKEN, MONGODB_URI, DEEPSEEK_API_KEY)
 import { Telegraf } from 'telegraf'; // Telegram Bot Framework
+import express from 'express'; // Express.js for HTTP server
 
 // ===============================================
 // CORE SERVICES AND UTILITIES IMPORTS
@@ -344,6 +345,17 @@ process.once('SIGINT', () => bot.stop('SIGINT'));   // Handle Ctrl+C
 process.once('SIGTERM', () => bot.stop('SIGTERM')); // Handle termination signal
 
 // ===============================================
+// WEBHOOK CONFIGURATION FOR RENDER DEPLOYMENT
+// ===============================================
+const PORT = process.env.PORT || 3000;
+const WEBHOOK_PATH = `/webhook/${BOT_TOKEN}`;
+const WEBHOOK_URL = process.env.WEBHOOK_URL ? `${process.env.WEBHOOK_URL}${WEBHOOK_PATH}` : `https://project-automata.onrender.com${WEBHOOK_PATH}`;
+
+console.log(`🌐 Webhook will run on port ${PORT}`);
+console.log(`📡 Webhook path: ${WEBHOOK_PATH}`);
+console.log(`🔗 Webhook URL: ${WEBHOOK_URL}`);
+
+// ===============================================
 // DATABASE INITIALIZATION
 // ===============================================
 // Initialize MongoDB connection on startup
@@ -360,12 +372,85 @@ console.log('  - MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
 console.log('  - DEEPSEEK_API_KEY:', process.env.DEEPSEEK_API_KEY ? 'Set' : 'Missing');
 
 // ===============================================
-// BOT STARTUP AND LAUNCH
+// BOT STARTUP AND WEBHOOK SETUP
 // ===============================================
-// Start the bot and display startup information
+// Start the bot and set up webhook for production deployment
 console.log('🚀 Launching bot...');
-bot.launch().then(() => {
-  console.log('✅ Bot is running successfully!');
+
+// Set up webhook or polling based on environment
+if (process.env.NODE_ENV === 'production') {
+  // Production: Use webhooks with Express.js
+  console.log('🌐 Production mode: Setting up webhook with Express...');
+  
+  // Create Express app
+  const app = express();
+  
+  // Add middleware to parse JSON bodies (required for Telegram webhooks)
+  app.use(express.json());
+  
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      service: 'enhanced-automata-bot',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+  
+  // Root endpoint
+  app.get('/', (req, res) => {
+    res.send('Enhanced Automata Bot is running!');
+  });
+  
+  // Set up webhook endpoint for Telegraf
+  app.use(bot.webhookCallback(WEBHOOK_PATH));
+  
+  // Start Express server
+  app.listen(PORT, () => {
+    console.log(`🌐 Express server running on port ${PORT}`);
+    console.log(`🏥 Health check available at: ${process.env.WEBHOOK_URL || 'https://project-automata.onrender.com'}/health`);
+    console.log(`📡 Webhook URL: ${WEBHOOK_URL}`);
+    
+    // Set webhook with Telegram (with retry logic)
+    const setWebhookWithRetry = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          await bot.telegram.setWebhook(WEBHOOK_URL);
+          console.log('✅ Webhook registered with Telegram');
+          break;
+        } catch (error) {
+          console.error(`❌ Attempt ${i + 1} failed to set webhook:`, error.message);
+          if (i === retries - 1) {
+            console.error('❌ All webhook registration attempts failed');
+          } else {
+            console.log(`⏳ Retrying in 5 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+        }
+      }
+    };
+    
+    setWebhookWithRetry();
+    logBotInfo();
+  });
+  
+} else {
+  // Development: Use polling
+  console.log('🔧 Development mode: Using polling...');
+  
+  bot.launch().then(() => {
+    console.log('✅ Bot polling is running successfully!');
+    logBotInfo();
+  }).catch((error) => {
+    console.error('❌ Failed to start bot:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+  });
+}
+
+// Function to log bot information
+function logBotInfo() {
   console.log('📁 Modular structure implemented:');
   console.log('  • src/config/ - Database configuration');
   console.log('  • src/services/ - AI and external services');
@@ -390,9 +475,4 @@ bot.launch().then(() => {
   setInterval(async () => {
     await cleanupTempImages();
   }, 5 * 60 * 1000); // Clean up every 5 minutes
-
-}).catch((error) => {
-  console.error('❌ Failed to start bot:', error);
-  console.error('Error details:', error.message);
-  console.error('Stack trace:', error.stack);
-});
+}

@@ -5,14 +5,14 @@
   "main": "bot.js",
   "type": "module",
   "scripts": {
-    "start": "node bot.js",
-    "dev": "node bot.js",
+    "start": "cd AutomataBot && node bot.js",
+    "dev": "cd AutomataBot && node bot.js",
     "test": "echo \"No tests specified\" && exit 0",
     "build": "echo \"No build step required\" && exit 0",
-    "verify": "node verify-setup.js",
-    "webhook:set": "node webhook-setup.js set",
-    "webhook:delete": "node webhook-setup.js delete",
-    "webhook:info": "node webhook-setup.js info"
+    "verify": "cd AutomataBot && node verify-setup.js",
+    "webhook:set": "cd AutomataBot && node webhook-setup.js set",
+    "webhook:delete": "cd AutomataBot && node webhook-setup.js delete",
+    "webhook:info": "cd AutomataBot && node webhook-setup.js info"
   },
   "keywords": [
     "telegram",
@@ -32,7 +32,7 @@
     "axios": "^1.10.0",
     "canvas": "^3.1.2",
     "dotenv": "^17.0.0",
-    "express": "^5.1.0",
+    "express": "^4.21.2",
     "fs-extra": "^11.3.0",
     "graphviz": "^0.0.9",
     "mongodb": "^6.12.0",

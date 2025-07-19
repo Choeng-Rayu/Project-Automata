@@ -11,9 +11,7 @@ export async function connectDB() {
   if (db) return db;
   
   try {
-    const client = new MongoClient(process.env.MONGODB_URI, { 
-      useUnifiedTopology: true 
-    });
+    const client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
     db = client.db();
     console.log('✅ Connected to MongoDB');
