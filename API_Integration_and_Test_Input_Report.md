@@ -2,7 +2,7 @@
 
 ## 🎯 **Executive Summary**
 
-This comprehensive report details my specialized responsibility within the AutomataBot project, focusing exclusively on **AI Service Integration** and its application in **Test Input String Feature Implementation**. The AutomataBot is an AI-powered educational Telegram bot designed to enhance learning in automata theory through intelligent explanations and comprehensive automata operations.
+This comprehensive report details my specialized responsibility within the AutomataBot project, focusing exclusively on **AI Service Integration** and its application in **Test Input String Feature Implementation**. The AutomataBot is an AI-powered educational Telegram bot designed to enhance learning in automata theory through intelligent explanations and comprehensive automata operations. My primary responsibility covers the core Test Input String feature implementation with AI enhancement capabilities.
 
 ---
 
@@ -11,7 +11,7 @@ This comprehensive report details my specialized responsibility within the Autom
 1. [Project Overview](#1-project-overview)
 2. [My Specific Responsibilities](#2-my-specific-responsibilities)
 3. [AI Service Integration Architecture](#3-ai-service-integration-architecture)
-4. [Test Input String Feature with AI Enhancement](#4-test-input-string-feature-with-ai-enhancement)
+4. [Test Input String Feature - Core Implementation](#4-test-input-string-feature---core-implementation)
 5. [Technical Architecture & Design](#5-technical-architecture--design)
 6. [Performance Analysis & Optimization](#6-performance-analysis--optimization)
 7. [Quality Assurance & Testing](#7-quality-assurance--testing)
@@ -34,7 +34,7 @@ This comprehensive report details my specialized responsibility within the Autom
 
 ### **Core Features**
 1. 🔧 **Design FA** - Create and analyze finite automata
-2. 🧪 **Test Input** - Simulate string processing (**MY PRIMARY RESPONSIBILITY**)
+2. 🧪 **Test Input** - Simulate string processing (**MY CORE IMPLEMENTATION**)
 3. 🔍 **Check FA Type** - Determine DFA vs NFA classification
 4. 🔄 **NFA→DFA** - Convert using subset construction
 5. ⚡ **Minimize DFA** - Optimize using partition refinement
@@ -59,12 +59,12 @@ This comprehensive report details my specialized responsibility within the Autom
 - Response validation and quality assurance
 - Educational content generation and optimization
 
-#### **Test Input String Feature - AI Component (100% Responsibility)**
-- AI-powered explanation generation for simulation results
-- Enhanced prompt engineering for step-by-step analysis
-- Educational content customization based on automaton complexity
-- Natural language explanation of acceptance/rejection decisions
-- Integration with calculation results for intelligent responses
+#### **Test Input String Feature - Core Implementation (100% Responsibility)**
+- Core string simulation and execution trace generation
+- Step-by-step automaton simulation algorithm implementation
+- Acceptance/rejection decision logic and analysis
+- Integration with visual diagram generation
+- AI-powered explanations for educational enhancement
 
 ### **Technical Focus Areas**
 - AI prompt optimization for educational effectiveness
@@ -278,198 +278,398 @@ const aiCache = new AIResponseCache();
 
 ---
 
-## 4. **Test Input String Feature with AI Enhancement**
+## 4. **Test Input String Feature - Core Implementation**
 
-### **4.1 AI Integration Architecture**
+### **4.1 Core Feature Architecture**
 
 ```mermaid
 graph TD
-    A[Calculator Results] --> B[Enhanced Prompt Generation]
-    B --> C[AI Service Call]
-    C --> D[Response Validation]
-    D --> E[Educational Content Formatting]
-    E --> F[User Response]
+    A[Input String] --> B[Input Validation]
+    B --> C[Calculator Execution]
+    C --> D[Step-by-Step Simulation]
+    D --> E[Execution Trace Generation]
+    E --> F[Result Analysis]
+    F --> G[Visual Diagram]
+    G --> H[AI Enhancement]
+    H --> I[User Response]
     
-    G[Cache Check] --> C
-    C --> H[Cache Update]
-    
-    I[Error Detection] --> J[Fallback Response]
-    J --> F
+    J[Error Detection] --> K[Fallback Response]
+    K --> I
 ```
 
-### **4.2 AI-Enhanced Explanation Generation**
+### **4.2 Core Calculator Implementation**
 
-#### **Main AI Integration Function**
+#### **Input Test Calculator - Main Function**
 ```javascript
-export async function explainAutomataStep(fa, operation, userInput = '') {
+export function calculateInputTest(fa, testString) {
   try {
-    console.log('� [AI EXPLAIN] Starting AI explanation generation...');
+    console.log(`🧪 [CALCULATOR] Starting input test for string: "${testString}"`);
     
-    // Check cache first
-    const cacheKey = aiCache.generateCacheKey(fa, userInput, operation);
-    const cachedResponse = aiCache.get(cacheKey);
-    if (cachedResponse) {
-      return cachedResponse;
+    // Step 1: Validate inputs
+    if (!fa || !fa.states || !fa.transitions) {
+      return {
+        success: false,
+        error: 'Invalid automaton structure'
+      };
     }
 
-    let prompt = '';
-    let systemMessage = SYSTEM_MESSAGES.automata_explanation;
-
-    // Handle enhanced prompts from calculator
-    if (userInput && userInput.includes('Explain') && userInput.length > 100) {
-      // This is an enhanced prompt from the test input calculator
-      prompt = userInput;
-      systemMessage = SYSTEM_MESSAGES.simulation_analysis;
-      console.log('📝 [AI EXPLAIN] Using enhanced prompt from calculator');
-    } else {
-      // Generate basic simulation prompt
-      const faDescription = formatAutomatonForAI(fa);
-      prompt = `Explain step-by-step how this automaton processes the input string "${userInput}":\n${faDescription}\nShow each step of the simulation process and explain the final result.`;
-      console.log('📝 [AI EXPLAIN] Generated basic simulation prompt');
+    if (!testString && testString !== '') {
+      return {
+        success: false,
+        error: 'Test string is required'
+      };
     }
 
-    // Call AI service with enhanced error handling
-    const aiResponse = await callDeepSeekAIWithRetry(prompt, systemMessage);
+    // Step 2: Execute simulation
+    const simulationResult = simulateFA(fa, testString);
     
-    // Cache successful responses
-    aiCache.set(cacheKey, aiResponse);
+    if (!simulationResult.success) {
+      return {
+        success: false,
+        error: simulationResult.error
+      };
+    }
+
+    // Step 3: Generate execution trace
+    const executionTrace = generateExecutionTrace(fa, testString, simulationResult.path);
     
-    console.log('✅ [AI EXPLAIN] Successfully generated AI explanation');
-    return aiResponse;
+    // Step 4: Analyze results
+    const analysis = analyzeSimulationResult(fa, testString, simulationResult, executionTrace);
+    
+    // Step 5: Determine automaton type
+    const automatonType = checkFAType(fa);
+
+    console.log(`✅ [CALCULATOR] Input test completed - Result: ${simulationResult.accepted ? 'ACCEPTED' : 'REJECTED'}`);
+    
+    return {
+      success: true,
+      result: simulationResult.accepted,
+      executionTrace,
+      analysis,
+      automatonType,
+      finalState: simulationResult.finalState,
+      path: simulationResult.path
+    };
 
   } catch (error) {
-    console.error('❌ [AI EXPLAIN] Error in AI explanation generation:', error);
-    return generateFallbackExplanation(fa, userInput, operation);
+    console.error('❌ [CALCULATOR] Error in input test calculation:', error);
+    return {
+      success: false,
+      error: `Calculation error: ${error.message}`
+    };
   }
 }
 ```
 
-#### **Retry Logic Implementation**
+#### **Step-by-Step Simulation Logic**
 ```javascript
-async function callDeepSeekAIWithRetry(prompt, systemMessage, maxRetries = 3) {
-  let lastError;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`🔄 [AI RETRY] Attempt ${attempt}/${maxRetries}`);
+function simulateFA(fa, inputString) {
+  try {
+    const symbols = inputString.split('');
+    let currentStates = [fa.startState]; // Support for NFA (multiple states)
+    const path = [{ states: [...currentStates], symbol: 'ε', step: 0 }];
+    
+    console.log(`🎯 [SIMULATION] Starting from state: ${fa.startState}`);
+    
+    // Process each symbol in the input string
+    for (let i = 0; i < symbols.length; i++) {
+      const symbol = symbols[i];
+      const nextStates = new Set();
       
-      const response = await callDeepSeekAI(prompt, systemMessage);
+      console.log(`🔄 [SIMULATION] Processing symbol '${symbol}' from states: ${currentStates.join(', ')}`);
       
-      // Validate response quality
-      if (validateAIResponse(response)) {
-        console.log('✅ [AI RETRY] Successful response received');
-        return response;
-      } else {
-        throw new Error('AI response quality validation failed');
+      // Find all possible transitions for current symbol
+      for (const state of currentStates) {
+        const transitions = fa.transitions.filter(t => 
+          t.from === state && t.symbol === symbol
+        );
+        
+        if (transitions.length === 0) {
+          console.log(`❌ [SIMULATION] No transition found from state ${state} on symbol '${symbol}'`);
+          return {
+            success: false,
+            error: `No transition from state ${state} on symbol '${symbol}'`
+          };
+        }
+        
+        transitions.forEach(t => {
+          nextStates.add(t.to);
+          console.log(`➡️ [SIMULATION] Transition: ${t.from} --${symbol}--> ${t.to}`);
+        });
       }
       
-    } catch (error) {
-      lastError = error;
-      console.error(`❌ [AI RETRY] Attempt ${attempt} failed:`, error.message);
+      currentStates = Array.from(nextStates);
+      path.push({ 
+        states: [...currentStates], 
+        symbol, 
+        step: i + 1 
+      });
+    }
+    
+    // Check if any final state is reached
+    const finalStatesReached = currentStates.filter(state => 
+      fa.finalStates.includes(state)
+    );
+    
+    const accepted = finalStatesReached.length > 0;
+    const finalState = currentStates.length === 1 ? currentStates[0] : currentStates;
+    
+    console.log(`🏁 [SIMULATION] Final states: ${currentStates.join(', ')}`);
+    console.log(`${accepted ? '✅' : '❌'} [SIMULATION] String ${accepted ? 'ACCEPTED' : 'REJECTED'}`);
+    
+    return {
+      success: true,
+      accepted,
+      finalState,
+      path,
+      finalStatesReached
+    };
+    
+  } catch (error) {
+    console.error('❌ [SIMULATION] Simulation error:', error);
+    return {
+      success: false,
+      error: `Simulation failed: ${error.message}`
+    };
+  }
+}
+```
+
+### **4.3 Execution Trace Generation**
+
+#### **Detailed Trace Generation System**
+```javascript
+function generateExecutionTrace(fa, inputString, simulationPath) {
+  const trace = [];
+  const symbols = inputString.split('');
+  
+  // Add initial state
+  trace.push({
+    step: 0,
+    description: `Initialize: Starting at state ${fa.startState}`,
+    currentStates: [fa.startState],
+    symbol: null,
+    nextStates: null
+  });
+  
+  // Process each step in the simulation
+  for (let i = 0; i < symbols.length; i++) {
+    const symbol = symbols[i];
+    const currentStep = simulationPath[i];
+    const nextStep = simulationPath[i + 1];
+    
+    const description = generateStepDescription(
+      currentStep.states,
+      symbol,
+      nextStep.states,
+      fa
+    );
+    
+    trace.push({
+      step: i + 1,
+      description,
+      currentStates: currentStep.states,
+      symbol,
+      nextStates: nextStep.states
+    });
+  }
+  
+  // Add final decision
+  const finalStep = simulationPath[simulationPath.length - 1];
+  const finalDescription = generateFinalDescription(finalStep.states, fa);
+  
+  trace.push({
+    step: symbols.length + 1,
+    description: finalDescription,
+    currentStates: finalStep.states,
+    symbol: null,
+    nextStates: null
+  });
+  
+  return trace;
+}
+
+function generateStepDescription(currentStates, symbol, nextStates, fa) {
+  if (currentStates.length === 1 && nextStates.length === 1) {
+    // DFA case
+    return `Read '${symbol}': Transition from ${currentStates[0]} to ${nextStates[0]}`;
+  } else {
+    // NFA case
+    const transitions = [];
+    for (const from of currentStates) {
+      for (const to of nextStates) {
+        const transition = fa.transitions.find(t => 
+          t.from === from && t.to === to && t.symbol === symbol
+        );
+        if (transition) {
+          transitions.push(`${from}→${to}`);
+        }
+      }
+    }
+    return `Read '${symbol}': Transitions ${transitions.join(', ')} → States {${nextStates.join(', ')}}`;
+  }
+}
+
+function generateFinalDescription(finalStates, fa) {
+  const acceptingStates = finalStates.filter(state => fa.finalStates.includes(state));
+  
+  if (acceptingStates.length > 0) {
+    return `Final Decision: String ACCEPTED (reached accepting state(s): ${acceptingStates.join(', ')})`;
+  } else {
+    return `Final Decision: String REJECTED (final state(s) ${finalStates.join(', ')} not in accepting states {${fa.finalStates.join(', ')}})`;
+  }
+}
+```
+
+#### **Result Analysis System**
+```javascript
+function analyzeSimulationResult(fa, testString, simulationResult, executionTrace) {
+  const { accepted, finalState, path } = simulationResult;
+  
+  // Calculate analysis metrics
+  const stepsExecuted = executionTrace.length - 1; // Exclude initial state
+  const pathTaken = path.map(step => 
+    step.states.length === 1 ? step.states[0] : `{${step.states.join(',')}}`
+  );
+  
+  // Determine acceptance/rejection reason
+  let acceptanceReason = null;
+  let rejectionReason = null;
+  
+  if (accepted) {
+    const acceptingStates = Array.isArray(finalState) 
+      ? finalState.filter(state => fa.finalStates.includes(state))
+      : (fa.finalStates.includes(finalState) ? [finalState] : []);
+    
+    acceptanceReason = `String accepted because final state(s) ${acceptingStates.join(', ')} are in the set of accepting states {${fa.finalStates.join(', ')}}`;
+  } else {
+    const finalStates = Array.isArray(finalState) ? finalState : [finalState];
+    rejectionReason = `String rejected because final state(s) {${finalStates.join(', ')}} are not in the set of accepting states {${fa.finalStates.join(', ')}}`;
+  }
+  
+  // Generate summary
+  const summary = `Simulation completed in ${stepsExecuted} steps. Path: ${pathTaken.join(' → ')}. Result: ${accepted ? 'ACCEPTED' : 'REJECTED'}.`;
+  
+  return {
+    stepsExecuted,
+    pathTaken,
+    acceptanceReason,
+    rejectionReason,
+    summary,
+    inputLength: testString.length,
+    automatonType: checkFAType(fa)
+  };
+}
+```
+
+### **4.4 Integration with AI Enhancement**
+
+#### **AI Integration Layer**
+```javascript
+// In operationHandlers.js - Core feature integration with AI
+async function handleTestInput(ctx, text) {
+  const session = getUserSession(ctx.from.id);
+  
+  // Ensure user has loaded an automaton first
+  if (!session.currentFA) {
+    ctx.reply('🚫 **No Automaton Loaded**\n\nPlease design an automaton first using "🔧 Design FA"');
+    return;
+  }
+
+  // Step 1: Use calculator to process the input test (CORE FEATURE)
+  const calculationResult = calculateInputTest(session.currentFA, text);
+
+  if (!calculationResult.success) {
+    ctx.reply(formatErrorMessage('Input Test Error', calculationResult.error));
+    return;
+  }
+
+  const { result, executionTrace, analysis, automatonType } = calculationResult;
+
+  try {
+    // Generate visual simulation diagram
+    const imagePath = await generateSimulationImage(session.currentFA, text, result);
+
+    // Step 2: Optional AI enhancement for educational explanations
+    const enhancedPrompt = `Explain this string simulation with the following analysis:
+    Input: "${text}"
+    Result: ${result ? 'ACCEPTED' : 'REJECTED'}
+    Automaton Type: ${automatonType}
+    Steps: ${analysis.stepsExecuted}
+    Path: ${analysis.pathTaken.join(' → ')}
+    
+    Execution Trace:
+    ${executionTrace.map(step => `Step ${step.step}: ${step.description}`).join('\n')}`;
+
+    const explanation = await explainAutomataStep(session.currentFA, 'simulate', enhancedPrompt);
+
+    // Send results with core calculation data
+    await sendPhotoWithFallback(ctx, imagePath, {
+      caption: `🧪 **String Simulation Result**\n\n**Input:** \`${text}\`\n**Result:** ${result ? '✅ ACCEPTED' : '❌ REJECTED'}\n**Steps:** ${analysis.stepsExecuted}\n**Type:** ${automatonType}`,
+      parse_mode: 'Markdown'
+    });
+
+    // Send detailed explanation (enhanced by AI)
+    ctx.reply(`**📋 Core Simulation Analysis:**\n${explanation}`, { parse_mode: 'Markdown' });
+
+  } catch (error) {
+    console.error('Error in test input processing:', error);
+    // Fallback to core functionality only
+    ctx.reply(`**📊 Core Simulation Results:**\n\n**Input:** "${text}"\n**Result:** ${result ? '✅ ACCEPTED' : '❌ REJECTED'}\n**Type:** ${automatonType}\n**Steps:** ${analysis.stepsExecuted}`);
+  }
+}
+```
+
+#### **Core Feature Reliability**
+```javascript
+function validateTestString(testString, alphabet) {
+  // Validate that all characters in test string are in the alphabet
+  const invalidChars = [];
+  
+  for (const char of testString) {
+    if (!alphabet.includes(char)) {
+      invalidChars.push(char);
+    }
+  }
+  
+  if (invalidChars.length > 0) {
+    return {
+      valid: false,
+      error: `Invalid characters in test string: ${invalidChars.join(', ')}. Alphabet: {${alphabet.join(', ')}}`
+    };
+  }
+  
+  return { valid: true };
+}
+
+function checkFAType(fa) {
+  // Determine if automaton is DFA or NFA
+  const stateSymbolPairs = new Set();
+  
+  for (const transition of fa.transitions) {
+    const pair = `${transition.from}-${transition.symbol}`;
+    
+    if (stateSymbolPairs.has(pair)) {
+      return 'NFA'; // Multiple transitions for same state-symbol pair
+    }
+    
+    stateSymbolPairs.add(pair);
+  }
+  
+  // Check if all state-symbol combinations have transitions (complete DFA)
+  for (const state of fa.states) {
+    for (const symbol of fa.alphabet) {
+      const hasTransition = fa.transitions.some(t => 
+        t.from === state && t.symbol === symbol
+      );
       
-      if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
-        console.log(`⏳ [AI RETRY] Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+      if (!hasTransition) {
+        return 'NFA'; // Incomplete DFA is considered NFA
       }
     }
   }
   
-  console.error('❌ [AI RETRY] All retry attempts failed');
-  throw lastError;
-}
-```
-
-### **4.3 Response Quality Validation**
-
-#### **AI Response Validation System**
-```javascript
-function validateAIResponse(response) {
-  // Check if response exists and has minimum length
-  if (!response || typeof response !== 'string' || response.length < 50) {
-    console.warn('⚠️ [AI VALIDATION] Response too short or invalid');
-    return false;
-  }
-  
-  // Check for error indicators in response
-  const errorIndicators = [
-    'I cannot',
-    'I am unable',
-    'error occurred',
-    'try again later',
-    'service unavailable'
-  ];
-  
-  const hasErrorIndicators = errorIndicators.some(indicator => 
-    response.toLowerCase().includes(indicator.toLowerCase())
-  );
-  
-  if (hasErrorIndicators) {
-    console.warn('⚠️ [AI VALIDATION] Response contains error indicators');
-    return false;
-  }
-  
-  // Check for educational content indicators
-  const educationalIndicators = [
-    'step',
-    'transition',
-    'state',
-    'accepted',
-    'rejected',
-    'simulation'
-  ];
-  
-  const hasEducationalContent = educationalIndicators.some(indicator =>
-    response.toLowerCase().includes(indicator.toLowerCase())
-  );
-  
-  if (!hasEducationalContent) {
-    console.warn('⚠️ [AI VALIDATION] Response lacks educational content');
-    return false;
-  }
-  
-  console.log('✅ [AI VALIDATION] Response quality validated');
-  return true;
-}
-```
-
-### **4.4 Fallback Response System**
-
-#### **Intelligent Fallback Generation**
-```javascript
-function generateFallbackExplanation(automaton, testString, operation) {
-  console.log('🔧 [FALLBACK] Generating fallback explanation...');
-  
-  if (operation === 'test_input') {
-    return `**String Simulation Analysis**
-
-**Test String:** "${testString}"
-**Automaton Type:** ${checkFAType(automaton)}
-
-**Simulation Process:**
-The automaton processes the string "${testString}" symbol by symbol, starting from state ${automaton.startState}.
-
-**Key Points:**
-• Each symbol causes a state transition according to the transition function
-• The string is accepted if the final state is in the set of final states: {${automaton.finalStates.join(', ')}}
-• For ${checkFAType(automaton)}, ${checkFAType(automaton) === 'DFA' ? 'there is exactly one transition per state-symbol pair' : 'multiple transitions may be possible from each state'}
-
-**Educational Insight:**
-This simulation demonstrates fundamental concepts of finite automata and how they recognize formal languages.
-
-*Note: Detailed AI explanation temporarily unavailable. The calculation results above provide the complete simulation trace.*`;
-  }
-  
-  return `**Automata Analysis**
-
-The calculation has completed successfully. While I'm unable to provide detailed AI explanations at the moment, the results above show the complete analysis.
-
-**Key Features of Your Automaton:**
-• States: ${automaton.states.join(', ')}
-• Alphabet: ${automaton.alphabet.join(', ')}
-• Type: ${checkFAType(automaton)}
-
-*Detailed explanations will be available once the AI service is restored.*`;
+  return 'DFA';
 }
 ```
 
