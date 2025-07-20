@@ -280,7 +280,18 @@ const aiCache = new AIResponseCache();
 
 ## 4. **Test Input String Feature - Core Implementation**
 
-### **4.1 Project Structure for Test Input Feature**
+### **4.1 Test Input String Feature Implementation**
+
+The Test Input String feature is the core functionality that allows users to test whether a given string is accepted or rejected by their finite automaton. This feature implements a complete simulation engine that processes input strings step-by-step through the automaton's states and transitions.
+
+#### **Key Implementation Components:**
+- **Input Validation:** Ensures test strings contain only alphabet symbols
+- **Simulation Engine:** Processes strings through automaton transitions
+- **Execution Tracking:** Records each step of the simulation process
+- **Result Analysis:** Determines acceptance/rejection with detailed reasoning
+- **Educational Enhancement:** AI-powered explanations for learning
+
+#### **Project Structure for Test Input Feature**
 
 ```
 src/
@@ -292,35 +303,39 @@ src/
     └── automataUtils.js            # Simulation algorithms
 ```
 
-### **4.2 Core Feature Architecture**
+### **4.2 Feature Architecture**
 
 ```mermaid
-graph TB
-    A[Calculator Results] -->|Enhanced Data| B[AI Service Layer]
-    B -->|API Request| C[DeepSeek AI API]
-    C -->|AI Response| B
-    B -->|Processed Response| D[Educational Content]
-    D --> E[User Interface]
+graph TD
+    A[Input String] --> B[Input Validation]
+    B --> C[Calculator Execution]
+    C --> D[Step-by-Step Simulation]
+    D --> E[Execution Trace Generation]
+    E --> F[Result Analysis]
+    F --> G[Visual Diagram]
+    G --> H[AI Enhancement]
+    H --> I[User Response]
     
-    subgraph "AI Service Layer"
-        B1[Prompt Engineering]
-        B2[Request Handler]
-        B3[Response Validator]
-        B4[Error Handler]
-        B5[Cache Manager]
-    end
-    
-    B --> B1
-    B1 --> B2
-    B2 --> B3
-    B3 --> B4
-    B4 --> B5
+    J[Error Detection] --> K[Fallback Response]
+    K --> I
 ```
 
-### **4.3 Component Implementation Details**
+#### **Architecture Flow Description:**
+1. **Input String** - User provides test string for simulation
+2. **Input Validation** - Validates string against automaton alphabet
+3. **Calculator Execution** - Core simulation logic processes the input
+4. **Step-by-Step Simulation** - Traces path through automaton states
+5. **Execution Trace Generation** - Creates detailed step-by-step record
+6. **Result Analysis** - Determines final acceptance/rejection status
+7. **Visual Diagram** - Generates visual representation of simulation
+8. **AI Enhancement** - Adds educational explanations via AI service
+9. **User Response** - Delivers complete results to user
 
-#### **4.3.1 Input Test Calculator (`src/services/calculators/inputTestCalculator.js`)**
+### **4.3 Core Calculator Implementation**
+
+#### **Input Test Calculator (`src/services/calculators/inputTestCalculator.js`)**
 **Responsibility:** Core calculation logic for string simulation
+
 ```javascript
 export function calculateInputTest(fa, testString) {
   try {
@@ -382,8 +397,9 @@ export function calculateInputTest(fa, testString) {
 }
 ```
 
-#### **4.3.2 Automata Utils (`src/utils/automataUtils.js`)**
-**Responsibility:** Core simulation algorithms and FA type checking
+#### **Core Simulation Engine (`src/utils/automataUtils.js`)**
+**Responsibility:** Fundamental automaton simulation algorithms
+
 ```javascript
 export function simulateFA(fa, inputString) {
   try {
@@ -457,36 +473,206 @@ export function simulateFA(fa, inputString) {
 }
 ```
 
-### **4.5 AI Service Integration (`src/services/aiService.js`)**
-**Responsibility:** AI explanation enhancement for educational purposes
+### **4.4 Execution Trace Generation**
 
-### **4.4 Component Integration Flow**
-
-#### **Complete Test Input String Process Flow**
-1. **Calculator Results** (`inputTestCalculator.js`) - Core string simulation and execution trace generation
-2. **AI Service Layer** (`aiService.js`) - Enhanced educational explanations
-3. **DeepSeek AI API** - External AI processing for educational content
-4. **Educational Content** - Processed AI response with step-by-step explanations
-5. **User Interface** - Complete simulation results with AI-powered insights
-
-#### **Data Flow Between Components**
+#### **Trace Generation Implementation**
 ```javascript
-// Core data flow example for string "101"
-const dataFlow = {
-  input: "101",
+export function generateExecutionTrace(fa, testString, simulationPath) {
+  const trace = [];
+  const symbols = testString.split('');
   
-  // From inputTestCalculator.js
+  // Initial state
+  trace.push({
+    step: 0,
+    symbol: 'ε',
+    currentStates: [fa.startState],
+    description: `Starting at initial state: ${fa.startState}`,
+    transitionType: 'initial'
+  });
+  
+  // Process each symbol
+  for (let i = 0; i < symbols.length; i++) {
+    const symbol = symbols[i];
+    const currentStep = simulationPath[i + 1];
+    
+    trace.push({
+      step: i + 1,
+      symbol: symbol,
+      currentStates: currentStep.states,
+      description: `Reading symbol '${symbol}', transitioning to state(s): ${currentStep.states.join(', ')}`,
+      transitionType: 'symbol'
+    });
+  }
+  
+  // Final state evaluation
+  const finalStates = simulationPath[simulationPath.length - 1].states;
+  const finalStatesReached = finalStates.filter(state => fa.finalStates.includes(state));
+  
+  trace.push({
+    step: symbols.length + 1,
+    symbol: 'END',
+    currentStates: finalStates,
+    description: `Simulation complete. Final state(s): ${finalStates.join(', ')}. ${
+      finalStatesReached.length > 0 ? 'STRING ACCEPTED' : 'STRING REJECTED'
+    }`,
+    transitionType: 'final'
+  });
+  
+  return trace;
+}
+```
+
+#### **Result Analysis Engine**
+```javascript
+export function analyzeSimulationResult(fa, testString, simulationResult, executionTrace) {
+  const { accepted, finalState, path } = simulationResult;
+  
+  return {
+    summary: `String "${testString}" was ${accepted ? 'ACCEPTED' : 'REJECTED'} by the automaton`,
+    stepsExecuted: executionTrace.length - 1,
+    pathTaken: path.map(step => step.states.join('|')),
+    finalStates: Array.isArray(finalState) ? finalState : [finalState],
+    acceptanceReason: accepted ? 
+      `String accepted because final state ${finalState} is in the set of final states: {${fa.finalStates.join(', ')}}` :
+      `String rejected because final state ${finalState} is not in the set of final states: {${fa.finalStates.join(', ')}}`,
+    automatonType: checkFAType(fa),
+    totalTransitions: path.length - 1,
+    stringLength: testString.length
+  };
+}
+```
+
+### **4.5 User Interface Integration**
+
+#### **Response Formatting for User Interface**
+```javascript
+export function formatSimulationResult(testString, result, analysis, automatonType) {
+  const resultEmoji = result ? '✅' : '❌';
+  const resultText = result ? 'ACCEPTED' : 'REJECTED';
+  
+  return `🧪 **String Simulation Result**
+
+**Input:** \`${testString}\`
+**Result:** ${resultEmoji} ${resultText}
+**Steps:** ${analysis.stepsExecuted}
+**Type:** ${automatonType}
+**Path:** ${analysis.pathTaken.join(' → ')}
+
+📊 Visual simulation showing the execution path through the automaton`;
+}
+
+export function formatExecutionTrace(executionTrace) {
+  return executionTrace.map((step, index) => {
+    if (step.transitionType === 'initial') {
+      return `**Step ${step.step}:** ${step.description}`;
+    } else if (step.transitionType === 'symbol') {
+      return `**Step ${step.step}:** Read '${step.symbol}' → States: {${step.currentStates.join(', ')}}`;
+    } else {
+      return `**Final:** ${step.description}`;
+    }
+  }).join('\n');
+}
+```
+
+#### **Interactive User Interface Components**
+```javascript
+export function generateInteractiveKeyboard(fa) {
+  // Generate keyboard buttons for automaton alphabet
+  const keyboardButtons = fa.alphabet.map(symbol => ({
+    text: symbol,
+    callback_data: `test_symbol_${symbol}`
+  }));
+  
+  // Add special buttons
+  keyboardButtons.push(
+    { text: '🔄 Reset', callback_data: 'test_reset' },
+    { text: '✅ Complete Test', callback_data: 'test_complete' }
+  );
+  
+  return keyboardButtons;
+}
+```
+
+### **4.6 API Service Integration**
+
+#### **AI Service Integration for Educational Enhancement**
+```javascript
+// AI Service Integration for Test Input Feature
+export async function enhanceTestInputWithAI(calculationResult, automaton, testString) {
+  try {
+    const enhancedPrompt = generateEnhancedPrompt(automaton, testString, calculationResult);
+    const aiExplanation = await explainAutomataStep(automaton, 'test_input', enhancedPrompt);
+    
+    return {
+      success: true,
+      explanation: aiExplanation,
+      enhanced: true
+    };
+  } catch (error) {
+    console.error('❌ [AI ENHANCEMENT] Failed to enhance result:', error);
+    return {
+      success: false,
+      explanation: generateFallbackExplanation(calculationResult, automaton, testString),
+      enhanced: false
+    };
+  }
+}
+```
+
+#### **Service Coordination and Integration**
+```javascript
+export async function processTestInputRequest(fa, testString) {
+  try {
+    // Step 1: Core calculation
+    const calculationResult = calculateInputTest(fa, testString);
+    
+    if (!calculationResult.success) {
+      return { success: false, error: calculationResult.error };
+    }
+    
+    // Step 2: Generate visual diagram
+    const visualDiagram = await generateSimulationDiagram(fa, testString, calculationResult);
+    
+    // Step 3: AI enhancement
+    const aiEnhancement = await enhanceTestInputWithAI(calculationResult, fa, testString);
+    
+    // Step 4: Format for user interface
+    const formattedResult = formatSimulationResult(
+      testString, 
+      calculationResult.result, 
+      calculationResult.analysis, 
+      calculationResult.automatonType
+    );
+    
+    return {
+      success: true,
+      result: calculationResult.result,
+      formattedMessage: formattedResult,
+      executionTrace: formatExecutionTrace(calculationResult.executionTrace),
+      aiExplanation: aiEnhancement.explanation,
+      visualDiagram: visualDiagram,
+      analysis: calculationResult.analysis
+    };
+    
+  } catch (error) {
+    console.error('❌ [SERVICE INTEGRATION] Error processing test input:', error);
+    return {
+      success: false,
+      error: `Service integration error: ${error.message}`
+    };
+  }
+}
+```
+
+#### **Data Flow Integration**
+```javascript
+// Complete data flow for Test Input String feature
+const testInputDataFlow = {
+  // Input from user
+  userInput: "101",
+  
+  // Core calculation phase
   calculationInput: { fa: automaton, testString: "101" },
-  
-  // To automataUtils.js
-  simulationInput: { fa: automaton, inputString: "101" },
-  simulationOutput: { 
-    accepted: true, 
-    path: [q0, q1, q0, q2], 
-    finalState: q2 
-  },
-  
-  // Back to inputTestCalculator.js
   calculationOutput: {
     success: true,
     result: true,
@@ -495,14 +681,21 @@ const dataFlow = {
     automatonType: 'DFA'
   },
   
-  // To aiService.js
-  aiPrompt: "Explain this simulation...",
-  aiResponse: "Step-by-step explanation...",
+  // AI enhancement phase
+  aiInput: {
+    prompt: "Enhanced explanation prompt...",
+    systemMessage: "Educational analysis system message..."
+  },
+  aiOutput: {
+    explanation: "Step-by-step educational explanation..."
+  },
   
-  // Final user response
-  response: {
-    result: "✅ ACCEPTED",
-    explanation: "📋 Educational Analysis..."
+  // User interface integration
+  uiOutput: {
+    formattedMessage: "🧪 String Simulation Result...",
+    visualDiagram: "simulation_diagram.png",
+    interactiveElements: [...],
+    detailedExplanation: "📋 Educational Analysis..."
   }
 };
 ```
