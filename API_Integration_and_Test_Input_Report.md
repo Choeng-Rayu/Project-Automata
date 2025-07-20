@@ -280,26 +280,53 @@ const aiCache = new AIResponseCache();
 
 ## 4. **Test Input String Feature - Core Implementation**
 
-### **4.1 Core Feature Architecture**
+### **4.1 Project Structure for Test Input Feature**
+
+```
+src/
+├── services/calculators/
+│   └── inputTestCalculator.js      # Core calculation logic
+├── handlers/
+│   ├── menuHandlers.js             # Menu button handling
+│   └── operationHandlers.js        # Operation processing
+├── utils/
+│   ├── automataUtils.js            # Simulation algorithms
+│   └── messageFormatter.js         # Result formatting
+└── services/
+    └── aiService.js                # AI explanation integration
+```
+
+### **4.2 Core Feature Architecture**
 
 ```mermaid
 graph TD
-    A[Input String] --> B[Input Validation]
-    B --> C[Calculator Execution]
-    C --> D[Step-by-Step Simulation]
-    D --> E[Execution Trace Generation]
-    E --> F[Result Analysis]
-    F --> G[Visual Diagram]
-    G --> H[AI Enhancement]
-    H --> I[User Response]
+    A[Menu Handler] --> B[Operation Handler]
+    B --> C[Input Test Calculator]
+    C --> D[Automata Utils Simulation]
+    D --> E[Message Formatter]
+    E --> F[AI Service Enhancement]
+    F --> G[User Response]
     
-    J[Error Detection] --> K[Fallback Response]
-    K --> I
+    H[Error Detection] --> I[Fallback Response]
+    I --> G
+    
+    subgraph "Core Components"
+        C1[inputTestCalculator.js]
+        C2[automataUtils.js]
+        C3[messageFormatter.js]
+        C4[aiService.js]
+    end
+    
+    C --> C1
+    D --> C2
+    E --> C3
+    F --> C4
 ```
 
-### **4.2 Core Calculator Implementation**
+### **4.3 Component Implementation Details**
 
-#### **Input Test Calculator - Main Function**
+#### **4.3.1 Input Test Calculator (`src/services/calculators/inputTestCalculator.js`)**
+**Responsibility:** Core calculation logic for string simulation
 ```javascript
 export function calculateInputTest(fa, testString) {
   try {
@@ -320,7 +347,7 @@ export function calculateInputTest(fa, testString) {
       };
     }
 
-    // Step 2: Execute simulation
+    // Step 2: Execute simulation using automataUtils
     const simulationResult = simulateFA(fa, testString);
     
     if (!simulationResult.success) {
@@ -361,9 +388,10 @@ export function calculateInputTest(fa, testString) {
 }
 ```
 
-#### **Step-by-Step Simulation Logic**
+#### **4.3.2 Automata Utils (`src/utils/automataUtils.js`)**
+**Responsibility:** Core simulation algorithms and FA type checking
 ```javascript
-function simulateFA(fa, inputString) {
+export function simulateFA(fa, inputString) {
   try {
     const symbols = inputString.split('');
     let currentStates = [fa.startState]; // Support for NFA (multiple states)
@@ -433,133 +461,322 @@ function simulateFA(fa, inputString) {
     };
   }
 }
-```
 
-### **4.3 Execution Trace Generation**
-
-#### **Detailed Trace Generation System**
-```javascript
-function generateExecutionTrace(fa, inputString, simulationPath) {
-  const trace = [];
-  const symbols = inputString.split('');
+export function checkFAType(fa) {
+  // Determine if automaton is DFA or NFA
+  const stateSymbolPairs = new Set();
   
-  // Add initial state
-  trace.push({
-    step: 0,
-    description: `Initialize: Starting at state ${fa.startState}`,
-    currentStates: [fa.startState],
-    symbol: null,
-    nextStates: null
-  });
-  
-  // Process each step in the simulation
-  for (let i = 0; i < symbols.length; i++) {
-    const symbol = symbols[i];
-    const currentStep = simulationPath[i];
-    const nextStep = simulationPath[i + 1];
+  for (const transition of fa.transitions) {
+    const pair = `${transition.from}-${transition.symbol}`;
     
-    const description = generateStepDescription(
-      currentStep.states,
-      symbol,
-      nextStep.states,
-      fa
-    );
+    if (stateSymbolPairs.has(pair)) {
+      return 'NFA'; // Multiple transitions for same state-symbol pair
+    }
     
-    trace.push({
-      step: i + 1,
-      description,
-      currentStates: currentStep.states,
-      symbol,
-      nextStates: nextStep.states
-    });
+    stateSymbolPairs.add(pair);
   }
   
-  // Add final decision
-  const finalStep = simulationPath[simulationPath.length - 1];
-  const finalDescription = generateFinalDescription(finalStep.states, fa);
-  
-  trace.push({
-    step: symbols.length + 1,
-    description: finalDescription,
-    currentStates: finalStep.states,
-    symbol: null,
-    nextStates: null
-  });
-  
-  return trace;
-}
-
-function generateStepDescription(currentStates, symbol, nextStates, fa) {
-  if (currentStates.length === 1 && nextStates.length === 1) {
-    // DFA case
-    return `Read '${symbol}': Transition from ${currentStates[0]} to ${nextStates[0]}`;
-  } else {
-    // NFA case
-    const transitions = [];
-    for (const from of currentStates) {
-      for (const to of nextStates) {
-        const transition = fa.transitions.find(t => 
-          t.from === from && t.to === to && t.symbol === symbol
-        );
-        if (transition) {
-          transitions.push(`${from}→${to}`);
-        }
+  // Check if all state-symbol combinations have transitions (complete DFA)
+  for (const state of fa.states) {
+    for (const symbol of fa.alphabet) {
+      const hasTransition = fa.transitions.some(t => 
+        t.from === state && t.symbol === symbol
+      );
+      
+      if (!hasTransition) {
+        return 'NFA'; // Incomplete DFA is considered NFA
       }
     }
-    return `Read '${symbol}': Transitions ${transitions.join(', ')} → States {${nextStates.join(', ')}}`;
   }
-}
-
-function generateFinalDescription(finalStates, fa) {
-  const acceptingStates = finalStates.filter(state => fa.finalStates.includes(state));
   
-  if (acceptingStates.length > 0) {
-    return `Final Decision: String ACCEPTED (reached accepting state(s): ${acceptingStates.join(', ')})`;
-  } else {
-    return `Final Decision: String REJECTED (final state(s) ${finalStates.join(', ')} not in accepting states {${fa.finalStates.join(', ')}})`;
+  return 'DFA';
+}
+```
+
+#### **4.3.3 Operation Handlers (`src/handlers/operationHandlers.js`)**
+**Responsibility:** Processing operations and integrating components
+```javascript
+async function handleTestInput(ctx, text) {
+  const session = getUserSession(ctx.from.id);
+  
+  // Ensure user has loaded an automaton first
+  if (!session.currentFA) {
+    ctx.reply('🚫 **No Automaton Loaded**\n\nPlease design an automaton first using "🔧 Design FA"');
+    return;
+  }
+
+  // Step 1: Use calculator to process the input test (CORE FEATURE)
+  const calculationResult = calculateInputTest(session.currentFA, text);
+
+  if (!calculationResult.success) {
+    ctx.reply(formatErrorMessage('Input Test Error', calculationResult.error));
+    return;
+  }
+
+  const { result, executionTrace, analysis, automatonType } = calculationResult;
+
+  try {
+    // Generate visual simulation diagram
+    const imagePath = await generateSimulationImage(session.currentFA, text, result);
+
+    // Step 2: Use message formatter for core results
+    const formattedMessage = formatSimulationResult(text, result, analysis, automatonType);
+
+    // Step 3: Optional AI enhancement for educational explanations
+    const enhancedPrompt = generateEnhancedPrompt(session.currentFA, text, calculationResult);
+    const explanation = await explainAutomataStep(session.currentFA, 'simulate', enhancedPrompt);
+
+    // Send results with core calculation data
+    await sendPhotoWithFallback(ctx, imagePath, {
+      caption: formattedMessage,
+      parse_mode: 'Markdown'
+    });
+
+    // Send detailed explanation (enhanced by AI)
+    ctx.reply(`**📋 Core Simulation Analysis:**\n${explanation}`, { parse_mode: 'Markdown' });
+
+  } catch (error) {
+    console.error('Error in test input processing:', error);
+    // Fallback to core functionality only using message formatter
+    const fallbackMessage = formatBasicResult(text, result, automatonType, analysis);
+    ctx.reply(fallbackMessage);
   }
 }
 ```
 
-#### **Result Analysis System**
+#### **4.3.4 Message Formatter (`src/utils/messageFormatter.js`)**
+**Responsibility:** Formatting results for user display
 ```javascript
-function analyzeSimulationResult(fa, testString, simulationResult, executionTrace) {
-  const { accepted, finalState, path } = simulationResult;
+export function formatSimulationResult(testString, result, analysis, automatonType) {
+  const resultEmoji = result ? '✅' : '❌';
+  const resultText = result ? 'ACCEPTED' : 'REJECTED';
   
-  // Calculate analysis metrics
-  const stepsExecuted = executionTrace.length - 1; // Exclude initial state
-  const pathTaken = path.map(step => 
-    step.states.length === 1 ? step.states[0] : `{${step.states.join(',')}}`
-  );
+  return `🧪 **String Simulation Result**
+
+**Input:** \`${testString}\`
+**Result:** ${resultEmoji} ${resultText}
+**Steps:** ${analysis.stepsExecuted}
+**Type:** ${automatonType}
+**Path:** ${analysis.pathTaken.join(' → ')}
+
+📊 Visual simulation showing the execution path through the automaton`;
+}
+
+export function formatBasicResult(testString, result, automatonType, analysis) {
+  const resultEmoji = result ? '✅' : '❌';
+  const resultText = result ? 'ACCEPTED' : 'REJECTED';
   
-  // Determine acceptance/rejection reason
-  let acceptanceReason = null;
-  let rejectionReason = null;
+  return `**📊 Core Simulation Results:**
+
+**Input:** "${testString}"
+**Result:** ${resultEmoji} ${resultText}
+**Type:** ${automatonType}
+**Steps:** ${analysis.stepsExecuted}
+**Path:** ${analysis.pathTaken.join(' → ')}
+
+${result ? analysis.acceptanceReason : analysis.rejectionReason}`;
+}
+
+export function formatErrorMessage(title, error) {
+  return `🚫 **${title}**
+
+${error}
+
+Please check your automaton definition and try again.`;
+}
+```
+
+#### **4.3.5 Menu Handlers (`src/handlers/menuHandlers.js`)**
+**Responsibility:** Handling menu button interactions for Test Input feature
+```javascript
+export function handleTestInputMenu(ctx) {
+  const session = getUserSession(ctx.from.id);
   
-  if (accepted) {
-    const acceptingStates = Array.isArray(finalState) 
-      ? finalState.filter(state => fa.finalStates.includes(state))
-      : (fa.finalStates.includes(finalState) ? [finalState] : []);
-    
-    acceptanceReason = `String accepted because final state(s) ${acceptingStates.join(', ')} are in the set of accepting states {${fa.finalStates.join(', ')}}`;
-  } else {
-    const finalStates = Array.isArray(finalState) ? finalState : [finalState];
-    rejectionReason = `String rejected because final state(s) {${finalStates.join(', ')}} are not in the set of accepting states {${fa.finalStates.join(', ')}}`;
+  if (!session.currentFA) {
+    ctx.reply('🚫 **No Automaton Loaded**\n\nPlease design an automaton first using "🔧 Design FA"');
+    return;
   }
   
-  // Generate summary
-  const summary = `Simulation completed in ${stepsExecuted} steps. Path: ${pathTaken.join(' → ')}. Result: ${accepted ? 'ACCEPTED' : 'REJECTED'}.`;
+  // Set waiting state for string input
+  updateUserSession(ctx.from.id, { waitingFor: 'test_input' });
   
-  return {
-    stepsExecuted,
-    pathTaken,
-    acceptanceReason,
-    rejectionReason,
-    summary,
-    inputLength: testString.length,
-    automatonType: checkFAType(fa)
-  };
+  const menuMessage = `🧪 **Test Input String**
+
+**Current Automaton:**
+• States: {${session.currentFA.states.join(', ')}}
+• Alphabet: {${session.currentFA.alphabet.join(', ')}}
+• Type: ${checkFAType(session.currentFA)}
+
+**Instructions:**
+Send me a string to test against your automaton. I'll simulate the execution step-by-step and show you whether the string is accepted or rejected.
+
+**Example:** Send \`101\` to test the string "101"
+
+💡 **Tip:** Make sure your string only contains symbols from the alphabet!`;
+
+  ctx.reply(menuMessage, { parse_mode: 'Markdown' });
 }
+```
+
+### **4.4 AI Service Integration (`src/services/aiService.js`)**
+**Responsibility:** AI explanation enhancement for educational purposes
+
+#### **AI Enhancement Integration**
+```javascript
+export async function explainAutomataStep(fa, operation, userInput = '') {
+  try {
+    console.log('🤖 [AI EXPLAIN] Starting AI explanation generation...');
+    
+    // Check cache first
+    const cacheKey = aiCache.generateCacheKey(fa, userInput, operation);
+    const cachedResponse = aiCache.get(cacheKey);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+    let prompt = '';
+    let systemMessage = SYSTEM_MESSAGES.automata_explanation;
+
+    // Handle enhanced prompts from calculator
+    if (userInput && userInput.includes('Explain') && userInput.length > 100) {
+      // This is an enhanced prompt from the test input calculator
+      prompt = userInput;
+      systemMessage = SYSTEM_MESSAGES.simulation_analysis;
+      console.log('📝 [AI EXPLAIN] Using enhanced prompt from calculator');
+    } else {
+      // Generate basic simulation prompt
+      const faDescription = formatAutomatonForAI(fa);
+      prompt = `Explain step-by-step how this automaton processes the input string "${userInput}":\n${faDescription}\nShow each step of the simulation process and explain the final result.`;
+      console.log('📝 [AI EXPLAIN] Generated basic simulation prompt');
+    }
+
+    // Call AI service with enhanced error handling
+    const aiResponse = await callDeepSeekAIWithRetry(prompt, systemMessage);
+    
+    // Cache successful responses
+    aiCache.set(cacheKey, aiResponse);
+    
+    console.log('✅ [AI EXPLAIN] Successfully generated AI explanation');
+    return aiResponse;
+
+  } catch (error) {
+    console.error('❌ [AI EXPLAIN] Error in AI explanation generation:', error);
+    return generateFallbackExplanation(fa, userInput, operation);
+  }
+}
+
+function generateFallbackExplanation(automaton, testString, operation) {
+  console.log('🔧 [FALLBACK] Generating fallback explanation...');
+  
+  if (operation === 'simulate' || operation === 'test_input') {
+    return `**String Simulation Analysis**
+
+**Test String:** "${testString}"
+**Automaton Type:** ${checkFAType(automaton)}
+
+**Simulation Process:**
+The automaton processes the string "${testString}" symbol by symbol, starting from state ${automaton.startState}.
+
+**Key Points:**
+• Each symbol causes a state transition according to the transition function
+• The string is accepted if the final state is in the set of final states: {${automaton.finalStates.join(', ')}}
+• For ${checkFAType(automaton)}, ${checkFAType(automaton) === 'DFA' ? 'there is exactly one transition per state-symbol pair' : 'multiple transitions may be possible from each state'}
+
+**Educational Insight:**
+This simulation demonstrates fundamental concepts of finite automata and how they recognize formal languages.
+
+*Note: Detailed AI explanation temporarily unavailable. The calculation results above provide the complete simulation trace.*`;
+  }
+  
+  return `**Automata Analysis**
+
+The calculation has completed successfully. While I'm unable to provide detailed AI explanations at the moment, the results above show the complete analysis.
+
+**Key Features of Your Automaton:**
+• States: ${automaton.states.join(', ')}
+• Alphabet: ${automaton.alphabet.join(', ')}
+• Type: ${checkFAType(automaton)}
+
+*Detailed explanations will be available once the AI service is restored.*`;
+}
+```
+
+### **4.5 Component Integration Flow**
+
+#### **Complete Test Input String Process Flow**
+1. **Menu Handler** (`menuHandlers.js`) - User clicks "🧪 Test Input" button
+2. **Operation Handler** (`operationHandlers.js`) - Receives user's input string
+3. **Input Test Calculator** (`inputTestCalculator.js`) - Performs core calculation
+4. **Automata Utils** (`automataUtils.js`) - Executes simulation algorithms
+5. **Message Formatter** (`messageFormatter.js`) - Formats results for display
+6. **AI Service** (`aiService.js`) - Enhances results with educational explanations
+7. **User Response** - Complete simulation results with visual diagram and explanation
+
+#### **Error Handling Chain**
+```mermaid
+graph TD
+    A[Input Validation] -->|Valid| B[Simulation]
+    A -->|Invalid| E[Error Response]
+    B -->|Success| C[Formatting]
+    B -->|Error| F[Simulation Error]
+    C -->|Success| D[AI Enhancement]
+    C -->|Error| G[Format Error]
+    D -->|Success| H[Complete Response]
+    D -->|Error| I[Fallback Response]
+    
+    E --> J[User Feedback]
+    F --> J
+    G --> J
+    H --> J
+    I --> J
+```
+
+#### **Data Flow Between Components**
+```javascript
+// Data flow example for string "101"
+const dataFlow = {
+  input: "101",
+  
+  // From menuHandlers.js
+  menuState: { waitingFor: 'test_input' },
+  
+  // To operationHandlers.js
+  context: { userId: 12345, automaton: fa },
+  
+  // To inputTestCalculator.js
+  calculationInput: { fa: automaton, testString: "101" },
+  
+  // To automataUtils.js
+  simulationInput: { fa: automaton, inputString: "101" },
+  simulationOutput: { 
+    accepted: true, 
+    path: [q0, q1, q0, q2], 
+    finalState: q2 
+  },
+  
+  // Back to inputTestCalculator.js
+  calculationOutput: {
+    success: true,
+    result: true,
+    executionTrace: [...],
+    analysis: {...},
+    automatonType: 'DFA'
+  },
+  
+  // To messageFormatter.js
+  formattedMessage: "🧪 String Simulation Result...",
+  
+  // To aiService.js
+  aiPrompt: "Explain this simulation...",
+  aiResponse: "Step-by-step explanation...",
+  
+  // Final user response
+  response: {
+    image: "simulation_diagram.png",
+    caption: "🧪 String Simulation Result...",
+    explanation: "📋 Core Simulation Analysis..."
+  }
+};
 ```
 
 ### **4.4 Integration with AI Enhancement**
