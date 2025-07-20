@@ -83,6 +83,9 @@ export async function handleFADefinition(ctx, session, text) {
   try {
     console.log(`🔧 [FA DEFINITION] Processing automaton for user ${ctx.from.id}`);
 
+    // Show typing indicator
+    await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
     // Step 1: Use calculator to process and validate the input
     const calculationResult = calculateDFADesign(text);
 
@@ -227,7 +230,8 @@ Then come back to test strings!`;
     return;
   }
 
-  // Inform user that simulation is starting
+  // Show typing indicator and inform user that simulation is starting
+  await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
   ctx.reply(`🧪 **Testing Input String: "${text}"** 📊 Generating simulation diagram...`, { parse_mode: 'Markdown' });
 
   // Step 1: Use calculator to process the input test
@@ -319,6 +323,9 @@ Then come back to test strings!`;
  */
 export async function handleFATypeCheck(ctx, session, text) {
   try {
+    // Show typing indicator
+    await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
     // Step 1: Use calculator to analyze the automaton type
     const calculationResult = calculateFAType(text);
 
@@ -412,42 +419,69 @@ export async function handleFATypeCheck(ctx, session, text) {
  */
 export async function handleNFAConversion(ctx, session, text) {
   try {
-    // Parse the input as NFA
-    const nfa = parseDFAInput(text);
-    
-    // Check if it's already a DFA
-    const faType = checkFAType(nfa);
-    
-    if (faType === 'DFA') {
+    // Show typing indicator
+    await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
+    // Step 1: Use calculator to process the NFA to DFA conversion
+    const calculationResult = calculateNFAToDFA(text);
+
+    if (!calculationResult.success) {
+      ctx.reply(formatErrorMessage('NFA Conversion Error', calculationResult.error), { parse_mode: 'Markdown' });
+      return;
+    }
+
+    const { originalNFA, convertedDFA, originalType, analysis, steps, stateMapping } = calculationResult;
+
+    if (originalType === 'DFA') {
       ctx.reply('ℹ️ **Already a DFA**\n\nThis automaton is already deterministic. No conversion needed!', { parse_mode: 'Markdown' });
       updateUserSession(ctx.from.id, { waitingFor: null });
       return;
     }
-    
+
     // Inform user that conversion is starting
     ctx.reply('🔄 **Converting NFA to DFA...** 📊 Generating visual diagram...', { parse_mode: 'Markdown' });
 
-    // Apply subset construction algorithm
-    const dfa = nfaToDfa(nfa);
-
     try {
       // Generate comparison image showing NFA and DFA side by side
-      const imagePath = await generateComparisonImage(nfa, dfa, 'NFA to DFA Conversion');
+      const imagePath = await generateComparisonImage(originalNFA, convertedDFA, 'NFA to DFA Conversion');
 
-      // Get AI explanation of the conversion process
-      const explanation = await explainAutomataStep(nfa, 'nfa2dfa');
+      // Step 2: Get enhanced AI explanation with calculator results
+      const enhancedPrompt = `Explain this NFA to DFA conversion with the following analysis:
+
+      Original Type: ${originalType}
+      Original States: ${analysis.originalStateCount}
+      Converted States: ${analysis.convertedStateCount}
+      State Increase: ${analysis.stateIncrease}
+      Efficiency: ${analysis.efficiency.rating}
+
+      Conversion Steps:
+      ${steps.map(step => `${step.stepNumber}. ${step.title}: ${step.description}`).join('\n')}
+
+      Provide a clear educational explanation of the subset construction process.`;
+
+      const explanation = await explainAutomataStep(originalNFA, 'nfa2dfa', enhancedPrompt);
 
       // Save the conversion operation to database
-      await saveToDatabase(ctx.from.id, nfa, dfa, 'nfa_to_dfa');
+      await saveToDatabase(ctx.from.id, originalNFA, convertedDFA, 'nfa_to_dfa');
 
       // Send the visual diagram first
       await sendPhotoWithFallback(ctx, imagePath, {
-        caption: '🔄 **NFA to DFA Conversion Result**\n\n📊 Visual comparison showing the original NFA (left) and converted DFA (right)',
+        caption: `🔄 **NFA to DFA Conversion Result**\n\n**Original States:** ${analysis.originalStateCount}\n**Converted States:** ${analysis.convertedStateCount}\n**Efficiency:** ${analysis.efficiency.rating}\n\n📊 Visual comparison showing the original NFA (left) and converted DFA (right)`,
         parse_mode: 'Markdown'
       });
 
-      // Send formatted result with detailed explanation
-      await sendFormattedResult(ctx, dfa, 'Converted DFA Details', explanation);
+      // Send formatted result with detailed explanation and calculator insights
+      let detailedResult = `**📋 Conversion Analysis:**\n${explanation}`;
+
+      if (analysis.stateIncrease > 0) {
+        detailedResult += `\n\n**📊 State Analysis:**\n`;
+        detailedResult += `• Original: ${analysis.originalStateCount} states\n`;
+        detailedResult += `• Converted: ${analysis.convertedStateCount} states\n`;
+        detailedResult += `• Increase: ${analysis.stateIncrease} states (${analysis.increasePercentage}%)\n`;
+        detailedResult += `• Efficiency: ${analysis.efficiency.rating}`;
+      }
+
+      await sendFormattedResult(ctx, convertedDFA, 'Converted DFA Details', detailedResult);
 
       // Clean up the image file after sending
       setTimeout(async () => {
@@ -490,6 +524,9 @@ export async function handleNFAConversion(ctx, session, text) {
  */
 export async function handleDFAMinimization(ctx, session, text) {
   try {
+    // Show typing indicator
+    await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
     // Parse the input automaton
     const dfa = parseDFAInput(text);
     
@@ -544,30 +581,60 @@ export async function handleDFAMinimization(ctx, session, text) {
         await sendFormattedResult(ctx, minimized, 'Converted and Minimized DFA', explanation);
       }
     } else {
-      // Handle DFA input - apply minimization directly
-      ctx.reply('⚡ **Minimizing DFA...** 📊 Generating visual diagram...', { parse_mode: 'Markdown' });
+      // Handle DFA input - use calculator for minimization
+      const calculationResult = calculateDFAMinimization(text);
 
-      // Step 1: Apply partition refinement algorithm
-      const minimized = minimizeDFA(dfa);
+      if (!calculationResult.success) {
+        ctx.reply(formatErrorMessage('DFA Minimization Error', calculationResult.error), { parse_mode: 'Markdown' });
+        return;
+      }
+
+      const { originalDFA, minimizedDFA, analysis, steps } = calculationResult;
+
+      ctx.reply('⚡ **Minimizing DFA...** 📊 Generating visual diagram...', { parse_mode: 'Markdown' });
 
       try {
         // Generate comparison image showing original and minimized DFA
-        const imagePath = await generateComparisonImage(dfa, minimized, 'DFA Minimization');
+        const imagePath = await generateComparisonImage(originalDFA, minimizedDFA, 'DFA Minimization');
 
-        // Step 2: Get AI explanation of the minimization process
-        const explanation = await explainAutomataStep(dfa, 'minimize');
+        // Step 2: Get enhanced AI explanation with calculator results
+        const enhancedPrompt = `Explain this DFA minimization with the following analysis:
+
+        Original States: ${analysis.originalStateCount}
+        Minimized States: ${analysis.minimizedStateCount}
+        States Reduced: ${analysis.statesReduced}
+        Already Minimal: ${analysis.isAlreadyMinimal}
+        Efficiency: ${analysis.efficiency}
+
+        Minimization Steps:
+        ${steps.map(step => `${step.stepNumber}. ${step.title}: ${step.description}`).join('\n')}
+
+        Provide a clear educational explanation of the partition refinement process.`;
+
+        const explanation = await explainAutomataStep(originalDFA, 'minimize', enhancedPrompt);
 
         // Step 3: Save the minimization operation to database
-        await saveToDatabase(ctx.from.id, dfa, minimized, 'minimize');
+        await saveToDatabase(ctx.from.id, originalDFA, minimizedDFA, 'minimize');
 
         // Send the visual diagram first
         await sendPhotoWithFallback(ctx, imagePath, {
-          caption: '⚡ **DFA Minimization Result**\n\n📊 Visual comparison: Original DFA (left) → Minimized DFA (right)',
+          caption: `⚡ **DFA Minimization Result**\n\n**Original States:** ${analysis.originalStateCount}\n**Minimized States:** ${analysis.minimizedStateCount}\n**Reduction:** ${analysis.statesReduced} states (${analysis.reductionPercentage}%)\n\n📊 Visual comparison: Original DFA (left) → Minimized DFA (right)`,
           parse_mode: 'Markdown'
         });
 
-        // Step 4: Send formatted result with detailed explanation
-        await sendFormattedResult(ctx, minimized, 'Minimized DFA Details', explanation);
+        // Step 4: Send formatted result with detailed explanation and calculator insights
+        let detailedResult = `**📋 Minimization Analysis:**\n${explanation}`;
+
+        if (analysis.isAlreadyMinimal) {
+          detailedResult += `\n\n**✅ Already Minimal:**\nThis DFA is already in its minimal form - no states can be merged.`;
+        } else {
+          detailedResult += `\n\n**📊 Minimization Results:**\n`;
+          detailedResult += `• States reduced: ${analysis.statesReduced}\n`;
+          detailedResult += `• Reduction percentage: ${analysis.reductionPercentage}%\n`;
+          detailedResult += `• Efficiency: ${analysis.efficiency}`;
+        }
+
+        await sendFormattedResult(ctx, minimizedDFA, 'Minimized DFA Details', detailedResult);
 
         // Clean up the image file
         setTimeout(async () => {
@@ -583,9 +650,9 @@ export async function handleDFAMinimization(ctx, session, text) {
         console.error('Error generating image:', imageError);
 
         // Fallback: send text result only
-        const explanation = await explainAutomataStep(dfa, 'minimize');
-        await saveToDatabase(ctx.from.id, dfa, minimized, 'minimize');
-        await sendFormattedResult(ctx, minimized, 'Minimized DFA', explanation);
+        const explanation = await explainAutomataStep(originalDFA, 'minimize');
+        await saveToDatabase(ctx.from.id, originalDFA, minimizedDFA, 'minimize');
+        await sendFormattedResult(ctx, minimizedDFA, 'Minimized DFA', explanation);
       }
     }
     

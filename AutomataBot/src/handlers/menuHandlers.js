@@ -28,7 +28,10 @@ import { checkFAType } from '../utils/automataUtils.js';
  * - Get examples for common patterns (even/odd counters, string patterns)
  * - Support both DFA and NFA creation
  */
-export function handleDesignFA(ctx) {
+export async function handleDesignFA(ctx) {
+  // Show typing indicator
+  await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
   const session = getUserSession(ctx.from.id);
   session.waitingFor = 'fa_definition'; // Set session state to wait for automaton definition
 
@@ -102,7 +105,10 @@ Final: q2
  * - Work with both DFA and NFA
  * - Display the execution path through states
  */
-export function handleTestInput(ctx) {
+export async function handleTestInput(ctx) {
+  // Show typing indicator
+  await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
   const session = getUserSession(ctx.from.id);
 
   console.log(`🧪 [MENU] Test Input button pressed by user ${ctx.from.id}`);
@@ -191,7 +197,10 @@ Send me a string to test against your current automaton.
  * - Analyze transition functions for determinism
  * - Provide clear explanations for the classification
  */
-export function handleCheckFAType(ctx) {
+export async function handleCheckFAType(ctx) {
+  // Show typing indicator
+  await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
   const session = getUserSession(ctx.from.id);
   session.waitingFor = 'fa_type_check'; // Set session to wait for automaton input
 
@@ -258,7 +267,10 @@ Try both examples to see the analysis!`;
  * - Handle epsilon transitions and multiple transitions
  * - Provide AI-powered explanations of each conversion step
  */
-export function handleNFAToDFA(ctx) {
+export async function handleNFAToDFA(ctx) {
+  // Show typing indicator
+  await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
   const session = getUserSession(ctx.from.id);
   session.waitingFor = 'nfa_conversion'; // Set session to wait for NFA input
 
@@ -326,7 +338,10 @@ Final: q3
  * - Show which states can be merged and why
  * - Identify already minimal DFAs
  */
-export function handleMinimizeDFA(ctx) {
+export async function handleMinimizeDFA(ctx) {
+  // Show typing indicator
+  await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
   const session = getUserSession(ctx.from.id);
   session.waitingFor = 'dfa_minimization'; // Set session to wait for DFA input
 

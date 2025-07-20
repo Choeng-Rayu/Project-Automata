@@ -1,0 +1,94 @@
+@startuml AutomataBot_Features
+
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam activity {
+    BackgroundColor #E8F5E8
+    BorderColor #4CAF50
+    DiamondBackgroundColor #FFF3E0
+    DiamondBorderColor #FF9800
+}
+
+title AutomataBot - Core Features Flow (Simplified)
+
+start
+:User starts bot;
+:Show main menu;
+
+if (Select Feature) then (🔧 Design FA)
+    :Enter automaton definition;
+    :Parse & validate input;
+    :Store in session + AI explanation;
+    
+elseif (Select Feature) then (🧪 Test Input)
+    if (FA exists?) then (yes)
+        :Enter test string;
+        :Simulate execution;
+        :Show ACCEPT/REJECT result;
+    else (no)
+        :Request FA first;
+    endif
+    
+elseif (Select Feature) then (🔍 Check Type)
+    if (FA exists?) then (yes)
+        :Analyze transitions;
+        :Classify as DFA/NFA;
+        :Explain characteristics;
+    else (no)
+        :Request FA first;
+    endif
+    
+elseif (Select Feature) then (🔄 NFA→DFA)
+    if (FA exists?) then (yes)
+        :Apply subset construction;
+        :Generate equivalent DFA;
+        :Compare results;
+    else (no)
+        :Request FA first;
+    endif
+    
+elseif (Select Feature) then (⚡ Minimize DFA)
+    if (FA exists?) then (yes)
+        :Apply partition refinement;
+        :Merge equivalent states;
+        :Show optimization;
+    else (no)
+        :Request FA first;
+    endif
+    
+elseif (Select Feature) then (🧠 AI Help)
+    :Process natural language question;
+    :Generate AI explanation;
+    :Create visual diagrams (if needed);
+endif
+
+:Save to database;
+:Update session;
+
+if (Continue?) then (yes)
+    note left: Return to menu
+else (no)
+    :End session;
+    stop
+endif
+
+note right
+    **6 Core Features:**
+    🔧 Design FA - Create automata
+    🧪 Test Input - Simulate strings
+    🔍 Check Type - DFA/NFA analysis
+    🔄 NFA→DFA - Convert using subset construction
+    ⚡ Minimize DFA - Optimize using partition refinement
+    🧠 AI Help - Educational assistance
+end note
+
+note left
+    **Key Capabilities:**
+    • Session state management
+    • AI-powered explanations
+    • Visual diagram generation
+    • Step-by-step algorithms
+    • Error handling & validation
+end note
+
+@enduml
