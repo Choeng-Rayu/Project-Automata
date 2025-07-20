@@ -85,7 +85,7 @@ export function minimizeDFA(dfa) {
           
           // ===============================================
           // STEP 2C: UPDATE WORKLIST
-          // ===============================================
+          // ==========================================.0000000li=====
           // Update worklist to ensure all necessary refinements are processed
           if (W.some(set => setsEqual(set, Y))) {
             // If Y was in worklist, replace it with both new sets
