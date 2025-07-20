@@ -1,0 +1,294 @@
+@startuml AutomataBot_Complete_UML_Diagrams
+
+!theme plain
+skinparam backgroundColor #FAFAFA
+
+' ===============================================
+' USE CASE DIAGRAM
+' ===============================================
+
+!startsub USECASE
+skinparam usecase {
+    BackgroundColor #E8F5E8
+    BorderColor #4CAF50
+}
+skinparam actor {
+    BackgroundColor #FFE0B2
+    BorderColor #FF9800
+}
+
+title AutomataBot - Use Case Diagram (Simplified)
+
+' Primary Actor
+actor "User" as user
+
+' External Systems
+actor "AI Service" as ai
+actor "Database" as db
+
+' System boundary
+rectangle "AutomataBot System" {
+    
+    ' Core Features (6 main operations)
+    usecase "🔧 Design FA" as UC1
+    usecase "🧪 Test Input" as UC2
+    usecase "🔍 Check FA Type" as UC3
+    usecase "🔄 Convert NFA→DFA" as UC4
+    usecase "⚡ Minimize DFA" as UC5
+    usecase "🧠 AI Help" as UC6
+    
+    ' Supporting Features
+    usecase "Start Bot Session" as UC7
+    usecase "View History" as UC8
+    usecase "Get Examples" as UC9
+}
+
+' User interactions with core features
+user --> UC1 : creates automata
+user --> UC2 : tests strings
+user --> UC3 : checks type
+user --> UC4 : converts NFA
+user --> UC5 : minimizes DFA
+user --> UC6 : asks questions
+user --> UC7 : starts session
+user --> UC8 : views history
+user --> UC9 : gets examples
+
+' Include relationships
+UC2 .> UC1 : <<include>>
+UC3 .> UC1 : <<include>>
+UC4 .> UC1 : <<include>>
+UC5 .> UC1 : <<include>>
+UC6 .> UC9 : <<include>>
+
+' External dependencies
+UC6 --> ai : requests explanations
+UC8 --> db : retrieves data
+UC1 --> db : saves automata
+
+note top of user
+    **All User Types:**
+    • Students learning theory
+    • Instructors teaching
+    • Researchers analyzing
+end note
+
+note bottom of UC1
+    **Core Feature**
+    Creates DFA/NFA with format:
+    States, Alphabet, Transitions,
+    Start State, Final States
+end note
+
+note right of UC6
+    **AI Integration**
+    Natural language processing
+    Educational explanations
+    Visual diagram generation
+end note
+!endsub
+
+newpage
+
+' ===============================================
+' ACTIVITY DIAGRAM
+' ===============================================
+
+!startsub ACTIVITY
+skinparam activity {
+    BackgroundColor #E8F5E8
+    BorderColor #4CAF50
+    DiamondBackgroundColor #FFF3E0
+    DiamondBorderColor #FF9800
+}
+
+title AutomataBot - Activity Diagram (Simplified)
+
+start
+:User starts bot;
+:Show main menu;
+
+if (Select Feature) then (🔧 Design FA)
+    :Enter automaton definition;
+    :Parse & validate input;
+    :Store in session + AI explanation;
+    
+elseif (Select Feature) then (🧪 Test Input)
+    if (FA exists?) then (yes)
+        :Enter test string;
+        :Simulate execution;
+        :Show ACCEPT/REJECT result;
+    else (no)
+        :Request FA first;
+    endif
+    
+elseif (Select Feature) then (🔍 Check Type)
+    if (FA exists?) then (yes)
+        :Analyze transitions;
+        :Classify as DFA/NFA;
+        :Explain characteristics;
+    else (no)
+        :Request FA first;
+    endif
+    
+elseif (Select Feature) then (🔄 NFA→DFA)
+    if (FA exists?) then (yes)
+        :Apply subset construction;
+        :Generate equivalent DFA;
+        :Compare results;
+    else (no)
+        :Request FA first;
+    endif
+    
+elseif (Select Feature) then (⚡ Minimize DFA)
+    if (FA exists?) then (yes)
+        :Apply partition refinement;
+        :Merge equivalent states;
+        :Show optimization;
+    else (no)
+        :Request FA first;
+    endif
+    
+elseif (Select Feature) then (🧠 AI Help)
+    :Process natural language question;
+    :Generate AI explanation;
+    :Create visual diagrams (if needed);
+endif
+
+:Save to database;
+:Update session;
+
+if (Continue?) then (yes)
+    note left: Return to menu
+else (no)
+    :End session;
+    stop
+endif
+
+note right
+    **6 Core Features:**
+    🔧 Design FA - Create automata
+    🧪 Test Input - Simulate strings
+    🔍 Check Type - DFA/NFA analysis
+    🔄 NFA→DFA - Convert using subset construction
+    ⚡ Minimize DFA - Optimize using partition refinement
+    🧠 AI Help - Educational assistance
+end note
+
+note left
+    **Key Capabilities:**
+    • Session state management
+    • AI-powered explanations
+    • Visual diagram generation
+    • Step-by-step algorithms
+    • Error handling & validation
+end note
+!endsub
+
+newpage
+
+' ===============================================
+' SEQUENCE DIAGRAM
+' ===============================================
+
+!startsub SEQUENCE
+skinparam participant {
+    BackgroundColor #E3F2FD
+    BorderColor #2196F3
+}
+
+title AutomataBot - Sequence Diagram (Simplified)
+
+actor User
+participant "Bot" as Bot
+participant "Menu Handler" as Menu
+participant "Automata Utils" as Utils
+participant "AI Service" as AI
+participant "Session" as Session
+participant "Database" as DB
+
+== Bot Start ==
+User -> Bot: /start
+Bot -> User: Welcome + Main Menu
+
+== Design FA Feature ==
+User -> Bot: Click "🔧 Design FA"
+Bot -> Menu: handleDesignFA()
+Menu -> User: Show input format
+
+User -> Bot: Submit automaton definition
+Bot -> Utils: parseDFAInput(text)
+Utils -> Utils: Parse & validate
+Utils -> Bot: Parsed automaton
+
+Bot -> Session: Store automaton
+Bot -> AI: Generate explanation
+AI -> Bot: AI response
+Bot -> User: Success + explanation
+
+== Test Input Feature ==
+User -> Bot: Click "🧪 Test Input"
+Bot -> Session: Check automaton exists
+Session -> Bot: Automaton data
+
+Bot -> User: Request test string
+User -> Bot: Submit "0110"
+Bot -> Utils: simulateFA(fa, "0110")
+Utils -> Bot: Execution result
+Bot -> User: ACCEPT/REJECT + trace
+
+== AI Help Feature ==
+User -> Bot: Click "🧠 AI Help"
+User -> Bot: Ask "How does DFA work?"
+Bot -> AI: Process question
+AI -> AI: Generate explanation
+AI -> Bot: Educational response
+Bot -> User: Formatted explanation
+
+== Save & Continue ==
+Bot -> DB: Save operation
+Bot -> Session: Update state
+Bot -> User: Show menu options
+
+note over User, DB
+    **Simplified Flow:**
+    • User interaction → Menu handling
+    • Core algorithm execution
+    • AI explanation generation
+    • Session & database management
+    • Formatted user response
+end note
+!endsub
+
+' ===============================================
+' SUMMARY
+' ===============================================
+
+note as Summary
+    **AutomataBot - Complete UML Documentation**
+    
+    **📋 Use Case Diagram:**
+    • Shows what the system does
+    • 6 core features + 3 supporting features
+    • User interactions and external dependencies
+    
+    **🔄 Activity Diagram:**
+    • Shows how the system behaves
+    • Complete user workflow
+    • Decision points and feature flows
+    
+    **📞 Sequence Diagram:**
+    • Shows how components interact
+    • Message passing between objects
+    • Technical implementation details
+    
+    **🎯 Key Features Covered:**
+    🔧 Design FA - Create finite automata
+    🧪 Test Input - Simulate string processing
+    🔍 Check FA Type - Classify DFA/NFA
+    🔄 NFA→DFA - Convert using subset construction
+    ⚡ Minimize DFA - Optimize using partition refinement
+    🧠 AI Help - Educational assistance with AI
+end note
+
+@enduml

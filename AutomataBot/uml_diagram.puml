@@ -1,0 +1,335 @@
+@startuml AutomataBot_Architecture
+
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam class {
+    BackgroundColor #E6F3FF
+    BorderColor #4A90E2
+    ArrowColor #4A90E2
+}
+skinparam note {
+    BackgroundColor #FFF9C4
+    BorderColor #FFB74D
+}
+
+title AutomataBot - Complete System Architecture\nFinite Automata Theory Telegram Bot with AI Integration
+
+package "Main Entry Point" {
+    class Bot_js <<main>> {
+        +main()
+        +setupBot()
+        +connectDatabase()
+        +setupHandlers()
+        +gracefulShutdown()
+        --
+        Orchestrates entire application
+        Entry point for bot execution
+    }
+}
+
+package "Core Services" <<Cloud>> {
+    
+    package "AI Integration" {
+        class AIService {
+            +callDeepSeekAI(prompt, systemMessage)
+            +callDeepSeekAIWithoutThink(prompt, systemMessage)
+            +explainAutomataStep(fa, operation, userInput)
+            +handleAIQuestion(question)
+            +generateLearningContent(topic)
+            +handleAIQuestionWithVisuals(question, ctx)
+            +generateAutomatonExample(requirement, ctx)
+            --
+            🧠 Provides AI explanations
+            🎯 Generates practice problems
+            📚 Educational content creation
+        }
+        
+        class TrainAI {
+            +generateSystemPrompt()
+            +trainOnAutomataTheory()
+            --
+            🎓 AI training and prompts
+            📖 Knowledge base management
+        }
+    }
+    
+    package "Image Generation" {
+        class ImageService {
+            +generateAutomatonImage(fa, options)
+            +createVisualDiagram(automaton)
+            +formatDiagramOutput()
+            --
+            🎨 Visual automaton diagrams
+            📊 Chart generation
+        }
+    }
+    
+    package "Database Layer" {
+        class Database {
+            +connectDB()
+            +saveToDatabase(userId, input, output, operation)
+            +getUserHistory(userId)
+            --
+            💾 MongoDB operations
+            📝 History tracking
+            🔒 Data persistence
+        }
+    }
+}
+
+package "Command Handlers" <<Component>> {
+    class CommandHandlers {
+        +handleStart(ctx)
+        +handleExplainCommand(ctx)
+        +handleExampleCommand(ctx)
+        +handleDesignCommand(ctx)
+        +handlePracticeCommand(ctx)
+        +handleLearningTopic(ctx, topic)
+        +handleNaturalLanguageQuestion(ctx, question)
+        +handleExamplesCommand(ctx)
+        --
+        🎯 Slash command processing
+        ⌨️ User command routing
+    }
+}
+
+package "Menu System" <<Component>> {
+    class MenuHandlers {
+        +handleDesignFA(ctx)
+        +handleTestInput(ctx)
+        +handleCheckFAType(ctx)
+        +handleNFAToDFA(ctx)
+        +handleMinimizeDFA(ctx)
+        +handleAIHelp(ctx)
+        +handleLearnMode(ctx)
+        +handleUserHistory(ctx)
+        --
+        🔧 Six core features
+        🎮 Interactive menu system
+    }
+}
+
+package "Core Algorithms" <<Database>> {
+    
+    package "Automata Processing" {
+        class AutomataUtils {
+            +parseDFAInput(text): Object
+            +checkFAType(fa): String
+            +simulateFA(fa, input): Object
+            +nfaToDfa(nfa): Object
+            +validateAutomaton(fa): Boolean
+            --
+            🔧 FEATURE 1: Design FA parsing
+            🔍 FEATURE 3: DFA/NFA detection
+            🧪 FEATURE 2: String simulation
+            🔄 FEATURE 4: NFA→DFA conversion
+        }
+        
+        class DFAMinimization {
+            +minimizeDFA(dfa): Object
+            +partitionRefinement(partitions): Array
+            +findEquivalentStates(dfa): Array
+            +buildMinimizedDFA(partitions, dfa): Object
+            --
+            ⚡ FEATURE 5: State minimization
+            🧮 Hopcroft's algorithm
+            📊 Partition refinement
+        }
+    }
+    
+    package "Calculator Modules" {
+        class DFADesignCalculator {
+            +processDesign(input)
+            +validateDesign(fa)
+            +generateExplanation(fa)
+        }
+        
+        class DFAMinimizationCalculator {
+            +processMinimization(dfa)
+            +explainMinimization(steps)
+            +compareResults(original, minimized)
+        }
+        
+        class FATypeCalculator {
+            +analyzeFAType(fa)
+            +explainClassification(result)
+            +highlightCharacteristics(fa)
+        }
+        
+        class InputTestCalculator {
+            +processInputTest(fa, input)
+            +simulateExecution(fa, string)
+            +generateExecutionTrace(steps)
+        }
+        
+        class NFAToDFACalculator {
+            +processConversion(nfa)
+            +subsetConstruction(nfa)
+            +explainConversionSteps(steps)
+        }
+        
+        class RegexCalculator {
+            +regexToAutomaton(regex)
+            +automatonToRegex(fa)
+            +validateRegexEquivalence(fa, regex)
+        }
+    }
+}
+
+package "Utilities" <<Folder>> {
+    class SessionManager {
+        +getUserSession(userId): Object
+        +updateUserSession(userId, data)
+        +clearSession(userId)
+        --
+        📱 User state management
+        🔄 Multi-step operations
+        💭 Context preservation
+    }
+    
+    class MessageFormatter {
+        +sendFormattedResult(ctx, result)
+        +formatAIResponse(response)
+        +formatLearningMessage(topic, content)
+        +formatHistoryMessage(history)
+        --
+        💬 Message beautification
+        📝 Markdown formatting
+        🎨 User-friendly output
+    }
+}
+
+package "Operation Handlers" <<Component>> {
+    class OperationHandlers {
+        +processDesignFA(ctx, input)
+        +processTestInput(ctx, fa, testString)
+        +processCheckType(ctx, fa)
+        +processNFAToDFA(ctx, nfa)
+        +processMinimizeDFA(ctx, dfa)
+        +processAIHelp(ctx, question)
+        --
+        🎯 Core feature orchestration
+        🔄 Multi-step workflows
+        ✅ Validation and error handling
+    }
+}
+
+' External Dependencies
+cloud "External Services" {
+    [Telegram Bot API] as TelegramAPI
+    [DeepSeek AI API] as DeepSeekAPI
+    [MongoDB Atlas] as MongoDB
+}
+
+' Main relationships - Bot orchestration
+Bot_js ||--|| CommandHandlers : uses
+Bot_js ||--|| MenuHandlers : uses
+Bot_js ||--|| Database : connects to
+Bot_js --> TelegramAPI : communicates
+
+' Command flow
+CommandHandlers --> AIService : requests explanations
+CommandHandlers --> ImageService : generates visuals
+MenuHandlers --> OperationHandlers : delegates operations
+
+' Core algorithm usage
+OperationHandlers --> AutomataUtils : calls algorithms
+OperationHandlers --> DFAMinimization : minimizes DFAs
+OperationHandlers --> SessionManager : manages state
+OperationHandlers --> MessageFormatter : formats output
+
+' Calculator integration
+AutomataUtils --> DFADesignCalculator : design processing
+AutomataUtils --> InputTestCalculator : simulation
+AutomataUtils --> FATypeCalculator : type checking
+AutomataUtils --> NFAToDFACalculator : conversion
+DFAMinimization --> DFAMinimizationCalculator : minimization
+AutomataUtils --> RegexCalculator : regex operations
+
+' Service integrations
+AIService --> DeepSeekAPI : AI requests
+AIService --> TrainAI : knowledge base
+Database --> MongoDB : data persistence
+OperationHandlers --> Database : saves results
+
+' Session and formatting
+OperationHandlers --> SessionManager : state management
+OperationHandlers --> MessageFormatter : response formatting
+
+note top of Bot_js
+    **MAIN ENTRY POINT**
+    • Initializes Telegram bot
+    • Sets up middleware and handlers
+    • Connects to MongoDB
+    • Manages graceful shutdown
+    • Orchestrates all components
+end note
+
+note top of AIService
+    **AI-POWERED FEATURES**
+    • DeepSeek API integration
+    • Natural language processing
+    • Educational explanations
+    • Practice problem generation
+    • Visual diagram creation
+end note
+
+note top of AutomataUtils
+    **CORE ALGORITHMS**
+    🔧 Feature 1: parseDFAInput()
+    🧪 Feature 2: simulateFA()
+    🔍 Feature 3: checkFAType()
+    🔄 Feature 4: nfaToDfa()
+end note
+
+note top of DFAMinimization
+    **MINIMIZATION ENGINE**
+    ⚡ Feature 5: minimizeDFA()
+    • Partition refinement algorithm
+    • Hopcroft's optimization
+    • Equivalent state detection
+end note
+
+note right of MenuHandlers
+    **SIX CORE FEATURES**
+    🔧 Design FA
+    🧪 Test Input
+    🔍 Check FA Type
+    🔄 NFA→DFA
+    ⚡ Minimize DFA
+    🧠 AI Help
+end note
+
+note left of OperationHandlers
+    **WORKFLOW ORCHESTRATION**
+    • Coordinates multi-step operations
+    • Validates user input
+    • Calls appropriate algorithms
+    • Manages error handling
+    • Formats and sends results
+end note
+
+' Feature flow annotations
+note as N1
+    **USER INTERACTION FLOW**
+    1. User sends command/menu choice
+    2. Handler validates and processes
+    3. Algorithm executes computation
+    4. AI explains results (optional)
+    5. Response formatted and sent
+    6. Session state updated
+    7. Results saved to database
+end note
+
+note as N2
+    **SIX MAIN FEATURES IMPLEMENTATION**
+    
+    🔧 **DESIGN FA** → parseDFAInput() → Validation → AI explanation
+    🧪 **TEST INPUT** → simulateFA() → Execution trace → Result display
+    🔍 **CHECK TYPE** → checkFAType() → Classification → Explanation
+    🔄 **NFA→DFA** → nfaToDfa() → Subset construction → Comparison
+    ⚡ **MINIMIZE DFA** → minimizeDFA() → Partition refinement → Optimization
+    🧠 **AI HELP** → DeepSeek API → Natural language → Educational content
+end note
+
+@enduml

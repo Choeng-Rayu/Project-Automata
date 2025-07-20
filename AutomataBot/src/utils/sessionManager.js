@@ -10,14 +10,23 @@ const userSessions = new Map();
  */
 export function getUserSession(userId) {
   if (!userSessions.has(userId)) {
+    console.log(`🔧 [SESSION] Creating new session for user ${userId}`);
     userSessions.set(userId, {
       currentFA: null,
       waitingFor: null,
       lastOperation: null,
-      history: []
+      history: [],
+      lastActivity: Date.now()
     });
+  } else {
+    // Update last activity
+    const session = userSessions.get(userId);
+    session.lastActivity = Date.now();
   }
-  return userSessions.get(userId);
+
+  const session = userSessions.get(userId);
+  console.log(`📋 [SESSION] Retrieved session for user ${userId}: waitingFor=${session.waitingFor}, hasFA=${!!session.currentFA}`);
+  return session;
 }
 
 /**
@@ -28,6 +37,14 @@ export function getUserSession(userId) {
 export function updateUserSession(userId, updates) {
   const session = getUserSession(userId);
   Object.assign(session, updates);
+  session.lastActivity = Date.now();
+
+  console.log(`🔄 [SESSION] Updated session for user ${userId}:`, {
+    waitingFor: session.waitingFor,
+    hasFA: !!session.currentFA,
+    faStates: session.currentFA ? session.currentFA.states?.length : 0,
+    updates: Object.keys(updates)
+  });
 }
 
 /**

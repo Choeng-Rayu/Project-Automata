@@ -60,10 +60,10 @@ export async function callDeepSeekAIWithoutThink(prompt, systemMessage = new AIA
 }
 
 /**
- * Generate explanation for automata operations
+ * Generate explanation for automata operations - Enhanced to work with calculator results
  * @param {Object} fa - Finite automaton
  * @param {string} operation - Operation type
- * @param {string} userInput - User input (for simulation)
+ * @param {string} userInput - User input (for simulation) or enhanced prompt from calculator
  * @returns {Promise<string>} AI explanation
  */
 export async function explainAutomataStep(fa, operation, userInput = '') {
@@ -77,23 +77,93 @@ Finite Automaton:
 `;
 
   let prompt = '';
-  switch (operation) {
-    case 'minimize':
-      prompt = `Explain step-by-step how to minimize this DFA:\n${faDescription}\nProvide a clear, educational explanation of the minimization process.`;
-      break;
-    case 'nfa2dfa':
-      prompt = `Explain step-by-step how to convert this NFA to DFA using subset construction:\n${faDescription}\nProvide a clear, educational explanation.`;
-      break;
-    case 'simulate':
-      prompt = `Explain step-by-step how this automaton processes the input string "${userInput}":\n${faDescription}\nShow each step of the simulation.`;
-      break;
-    case 'type':
-      prompt = `Analyze this finite automaton and explain why it is a DFA or NFA:\n${faDescription}\nProvide clear reasoning.`;
-      break;
-    default:
-      prompt = `Explain this finite automaton:\n${faDescription}`;
+
+  // Check if userInput is actually an enhanced prompt from calculator
+  if (userInput && userInput.includes('Explain') && userInput.length > 100) {
+    // This is an enhanced prompt from calculator, use it directly
+    prompt = userInput;
+  } else {
+    // Generate traditional prompts
+    switch (operation) {
+      case 'minimize':
+        prompt = `Explain step-by-step how to minimize this DFA:\n${faDescription}\nProvide a clear, educational explanation of the minimization process.`;
+        break;
+      case 'nfa2dfa':
+        prompt = `Explain step-by-step how to convert this NFA to DFA using subset construction:\n${faDescription}\nProvide a clear, educational explanation.`;
+        break;
+      case 'simulate':
+        prompt = `Explain step-by-step how this automaton processes the input string "${userInput}":\n${faDescription}\nShow each step of the simulation.`;
+        break;
+      case 'type':
+        prompt = `Analyze this finite automaton and explain why it is a DFA or NFA:\n${faDescription}\nProvide clear reasoning.`;
+        break;
+      case 'design':
+        prompt = `Analyze this automaton design and explain its structure:\n${faDescription}\nProvide insights about its properties and any design considerations.`;
+        break;
+      default:
+        prompt = `Explain this finite automaton:\n${faDescription}`;
+    }
   }
-  
+
+  return await callDeepSeekAI(prompt);
+}
+
+/**
+ * Enhanced AI explanation with calculator results
+ * @param {Object} calculatorResult - Results from calculator
+ * @param {string} operation - Operation type
+ * @returns {Promise<string>} Enhanced AI explanation
+ */
+export async function explainWithCalculatorResults(calculatorResult, operation) {
+  if (!calculatorResult.success) {
+    return `Error in calculation: ${calculatorResult.error}`;
+  }
+
+  let prompt = '';
+
+  switch (operation) {
+    case 'DFA_DESIGN':
+      const { automaton, automatonType, analysis, designIssues } = calculatorResult;
+      prompt = `Provide a comprehensive explanation of this automaton design:
+
+      Automaton Type: ${automatonType}
+      States: ${analysis.stateCount}
+      Completeness: ${analysis.completeness.isComplete ? 'Complete' : 'Incomplete'}
+      Issues Found: ${designIssues.length}
+
+      ${designIssues.length > 0 ? `Design Issues: ${designIssues.map(i => i.description).join(', ')}` : ''}
+
+      Explain the structure, properties, and provide educational insights about this automaton.`;
+      break;
+
+    case 'INPUT_TEST':
+      const { testString, result, analysis: testAnalysis, executionTrace } = calculatorResult;
+      prompt = `Explain this string simulation in detail:
+
+      Input: "${testString}"
+      Result: ${result ? 'ACCEPTED' : 'REJECTED'}
+      Steps: ${testAnalysis.stepsExecuted}
+      Path: ${testAnalysis.pathTaken.join(' → ')}
+
+      Provide a clear educational explanation of how the automaton processed this input.`;
+      break;
+
+    case 'FA_TYPE_CHECK':
+      const { type, reasoning, determinismAnalysis } = calculatorResult;
+      prompt = `Explain why this automaton is classified as ${type}:
+
+      Classification: ${type}
+      Reasoning: ${reasoning.summary}
+      Deterministic: ${determinismAnalysis.isDeterministic}
+      Completeness: ${determinismAnalysis.completeness.completenessPercentage}%
+
+      Provide clear educational reasoning with specific examples.`;
+      break;
+
+    default:
+      prompt = `Explain this automata operation result: ${JSON.stringify(calculatorResult, null, 2)}`;
+  }
+
   return await callDeepSeekAI(prompt);
 }
 
@@ -320,6 +390,9 @@ export async function handleAIQuestionWithVisuals(question, ctx) {
   try {
     console.log(`🔍 [AI-VISUAL] Starting handleAIQuestionWithVisuals with: "${question}"`);
     console.log(`🔍 [AI-VISUAL] Context info - Chat ID: ${ctx.chat?.id}, User ID: ${ctx.from?.id}`);
+
+    // Show typing indicator immediately
+    await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
 
     // Enhanced detection for design/example requests
     const lowerQuestion = question.toLowerCase();
