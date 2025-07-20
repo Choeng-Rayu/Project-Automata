@@ -292,35 +292,80 @@ src/
 ├── utils/
 │   ├── automataUtils.js            # Simulation algorithms
 │   └── messageFormatter.js         # Result formatting
-└── services/
-    └── aiService.js                # AI explanation integration
+├── services/
+│   └── aiService.js                # AI explanation integration
+├── integration/
+│   ├── uiIntegration.js            # User Interface Integration
+│   └── apiServiceIntegration.js    # API Service Integration
 ```
 
 ### **4.2 Core Feature Architecture**
 
 ```mermaid
-graph TD
-    A[Menu Handler] --> B[Operation Handler]
-    B --> C[Input Test Calculator]
-    C --> D[Automata Utils Simulation]
-    D --> E[Message Formatter]
-    E --> F[AI Service Enhancement]
-    F --> G[User Response]
+graph TB
+    A[User Input] --> B[Menu Handler]
+    B --> C[Operation Handler]
+    C --> D[Input Test Calculator]
+    D --> E[Automata Utils Simulation]
+    E --> F[Message Formatter]
+    F --> G[UI Integration Layer]
+    G --> H[API Service Integration]
+    H --> I[AI Service Layer]
+    I --> J[Educational Response]
+    J --> K[User Interface]
     
-    H[Error Detection] --> I[Fallback Response]
-    I --> G
-    
-    subgraph "Core Components"
-        C1[inputTestCalculator.js]
-        C2[automataUtils.js]
-        C3[messageFormatter.js]
-        C4[aiService.js]
+    subgraph "Core Calculation Components"
+        D1[Input Validation]
+        D2[Simulation Engine]
+        D3[Execution Trace Generator]
+        D4[Result Analyzer]
     end
     
-    C --> C1
-    D --> C2
-    E --> C3
-    F --> C4
+    subgraph "UI Integration Layer"
+        G1[Visual Component Manager]
+        G2[Interactive Keyboard Generator]
+        G3[Progress Display Handler]
+        G4[Error Visualization]
+    end
+    
+    subgraph "API Service Integration"
+        H1[Service Endpoint Manager]
+        H2[Parallel Service Coordinator]
+        H3[Response Integration Engine]
+        H4[Service Health Monitor]
+    end
+    
+    subgraph "AI Service Layer"
+        I1[Prompt Engineering]
+        I2[Request Handler]
+        I3[Response Validator]
+        I4[Error Handler]
+        I5[Cache Manager]
+    end
+    
+    L[Error Detection] --> M[Fallback Response Generator]
+    M --> K
+    
+    D --> D1
+    D1 --> D2
+    D2 --> D3
+    D3 --> D4
+    
+    G --> G1
+    G --> G2
+    G --> G3
+    G --> G4
+    
+    H --> H1
+    H --> H2
+    H --> H3
+    H --> H4
+    
+    I --> I1
+    I1 --> I2
+    I2 --> I3
+    I3 --> I4
+    I4 --> I5
 ```
 
 ### **4.3 Component Implementation Details**
@@ -733,7 +778,7 @@ graph TD
 
 #### **Data Flow Between Components**
 ```javascript
-// Data flow example for string "101"
+// Enhanced data flow example for string "101"
 const dataFlow = {
   input: "101",
   
@@ -766,6 +811,22 @@ const dataFlow = {
   // To messageFormatter.js
   formattedMessage: "🧪 String Simulation Result...",
   
+  // To uiIntegration.js
+  uiComponents: { 
+    visualData: {...}, 
+    interactiveKeyboard: {...},
+    progressDisplay: {...},
+    errorVisualization: {...}
+  },
+  
+  // To apiServiceIntegration.js
+  integrationRequest: {
+    calculationResult: {...},
+    serviceEndpoints: [...],
+    parallelCalls: [...],
+    healthStatus: {...}
+  },
+  
   // To aiService.js
   aiPrompt: "Explain this simulation...",
   aiResponse: "Step-by-step explanation...",
@@ -774,7 +835,8 @@ const dataFlow = {
   response: {
     image: "simulation_diagram.png",
     caption: "🧪 String Simulation Result...",
-    explanation: "📋 Core Simulation Analysis..."
+    interactiveButtons: [...],
+    explanation: "📋 Enhanced Analysis..."
   }
 };
 ```
