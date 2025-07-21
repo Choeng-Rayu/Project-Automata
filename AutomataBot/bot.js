@@ -61,7 +61,7 @@ import express from 'express'; // Express.js for HTTP server
 
 // Database and session management
 import { connectDB } from './src/config/database.js'; // MongoDB connection handler
-import { getUserSession } from './src/utils/sessionManager.js'; // User session state management
+import { getUserSession, cleanupOldSessions, cleanupStuckSessions, getSessionStats } from './src/utils/sessionManager.js'; // User session state management
 
 // Automata algorithms and utilities
 import { parseDFAInput, checkFAType, simulateFA, nfaToDfa } from './src/utils/automataUtils.js';
@@ -473,8 +473,16 @@ function logBotInfo() {
   console.log('🖼️ Image generation enabled for visual automata diagrams');
   console.log('🗑️ Automatic cleanup scheduled every 5 minutes');
 
-  // Schedule periodic cleanup of temporary image files
+  // Schedule periodic cleanup of temporary image files and sessions
   setInterval(async () => {
     await cleanupTempImages();
+    cleanupOldSessions(); // Clean up sessions older than 24 hours
+    cleanupStuckSessions(); // Clean up sessions stuck waiting for more than 30 minutes
+
+    // Log session statistics every hour
+    const stats = getSessionStats();
+    if (stats.totalSessions > 0) {
+      console.log(`📊 [SESSION STATS] Active: ${stats.totalSessions}, Waiting: ${stats.waitingSessions}, With FA: ${stats.sessionsWithFA}`);
+    }
   }, 5 * 60 * 1000); // Clean up every 5 minutes
 }

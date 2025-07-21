@@ -1,6 +1,7 @@
 // AI Service for DeepSeek integration
 import axios from 'axios';
 import { generateAutomatonImage } from './imageService.js';
+import { addUserInputToHistory, addBotResponseToHistory, addExerciseToHistory } from '../utils/sessionManager.js';
 
 import {AIAssistant} from './trainAi.js';
 
@@ -193,6 +194,13 @@ export async function handleAIQuestion(question) {
 export async function generateAutomatonExample(requirement, ctx) {
   try {
     console.log(`🎨 [STEP 1] Starting generateAutomatonExample for: "${requirement}"`);
+
+    // Add exercise to history
+    const exerciseId = addExerciseToHistory(ctx.from.id, 'automaton_example', {
+      requirement: requirement,
+      topic: 'automaton_design',
+      difficulty: 'medium'
+    }, 'ai_request');
 
     // Generate the automaton design using AI
     const designPrompt = `Design a finite automaton that ${requirement}.
@@ -391,6 +399,12 @@ export async function handleAIQuestionWithVisuals(question, ctx) {
     console.log(`🔍 [AI-VISUAL] Starting handleAIQuestionWithVisuals with: "${question}"`);
     console.log(`🔍 [AI-VISUAL] Context info - Chat ID: ${ctx.chat?.id}, User ID: ${ctx.from?.id}`);
 
+    // Add user input to history
+    const inputId = addUserInputToHistory(ctx.from.id, question, 'ai_question', {
+      questionType: 'natural_language',
+      questionLength: question.length
+    });
+
     // Show typing indicator immediately
     await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
 
@@ -443,7 +457,15 @@ export async function handleAIQuestionWithVisuals(question, ctx) {
     await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
 
     const response = await handleAIQuestion(question);
-    await ctx.reply(`🧠 **AI Assistant:**\n\n${response}`, { parse_mode: 'Markdown' });
+    const fullResponse = `🧠 **AI Assistant:**\n\n${response}`;
+    await ctx.reply(fullResponse, { parse_mode: 'Markdown' });
+
+    // Add bot response to history
+    addBotResponseToHistory(ctx.from.id, fullResponse, 'ai_question', {
+      success: true,
+      responseLength: response.length,
+      questionType: 'general'
+    }, inputId);
 
   } catch (error) {
     console.error('❌ Error in AI question with visuals:', error);

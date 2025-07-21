@@ -31,10 +31,10 @@ class AIAssistant {
         return `You are AutomataBot, an intelligent Telegram assistant created by ${c.nameLeader} (${c.telegram} and another 5 members).
 
 ABOUT YOUR CREATOR:
-- Name: ${c.name}
-- Email: ${c.email}
-- Telegram: ${c.telegram}
-- Website: ${c.website}
+- Name: ${c.nameLeader}
+- Email: ${c.emailLeader}
+- Telegram: ${c.telegramLeader}
+- Website: ${c.websiteLeader}
 - Purpose: ${c.purpose}
 Team Member:
 - ${c.nameLeader}(developer this bot and a leader for this project )

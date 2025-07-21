@@ -9,9 +9,7 @@
 // 5. ⚡ Minimize DFA - Minimize DFA using partition refinement
 // 6. 🧠 AI Help - AI-powered explanations and assistance
 
-import { getUserSession, updateUserSession } from '../utils/sessionManager.js';
-import { getUserHistory } from '../config/database.js';
-import { formatHistoryMessage } from '../utils/messageFormatter.js';
+import { getUserSession, updateUserSession, getUserHistory, getConversationSummary } from '../utils/sessionManager.js';
 import { checkFAType } from '../utils/automataUtils.js';
 
 // ===============================================
@@ -32,8 +30,11 @@ export async function handleDesignFA(ctx) {
   // Show typing indicator
   await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
 
-  const session = getUserSession(ctx.from.id);
-  session.waitingFor = 'fa_definition'; // Set session state to wait for automaton definition
+  // Use proper session update instead of direct assignment
+  updateUserSession(ctx.from.id, {
+    waitingFor: 'fa_definition',
+    lastOperation: 'design_fa_menu'
+  });
 
   const helpText = `� **Design Your Finite Automaton**
 
@@ -201,8 +202,11 @@ export async function handleCheckFAType(ctx) {
   // Show typing indicator
   await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
 
-  const session = getUserSession(ctx.from.id);
-  session.waitingFor = 'fa_type_check'; // Set session to wait for automaton input
+  // Use proper session update instead of direct assignment
+  updateUserSession(ctx.from.id, {
+    waitingFor: 'fa_type_check',
+    lastOperation: 'fa_type_menu'
+  });
 
   const helpText = `🔍 **Check Automaton Type**
 
@@ -271,8 +275,11 @@ export async function handleNFAToDFA(ctx) {
   // Show typing indicator
   await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
 
-  const session = getUserSession(ctx.from.id);
-  session.waitingFor = 'nfa_conversion'; // Set session to wait for NFA input
+  // Use proper session update instead of direct assignment
+  updateUserSession(ctx.from.id, {
+    waitingFor: 'nfa_conversion',
+    lastOperation: 'nfa_conversion_menu'
+  });
 
   const helpText = `🔄 **Convert NFA to DFA**
 
@@ -342,8 +349,11 @@ export async function handleMinimizeDFA(ctx) {
   // Show typing indicator
   await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
 
-  const session = getUserSession(ctx.from.id);
-  session.waitingFor = 'dfa_minimization'; // Set session to wait for DFA input
+  // Use proper session update instead of direct assignment
+  updateUserSession(ctx.from.id, {
+    waitingFor: 'dfa_minimization',
+    lastOperation: 'dfa_minimization_menu'
+  });
 
   const helpText = `⚡ **Minimize DFA**
 
@@ -491,25 +501,62 @@ Choose a topic to learn with step-by-step tutorials:
  */
 export async function handleMyHistory(ctx) {
   try {
-    const history = await getUserHistory(ctx.from.id);
+    // Show typing indicator
+    await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
+
+    // Get conversation history from session (not database)
+    const history = getUserHistory(ctx.from.id, 15, 'all'); // Get last 15 entries of all types
+    const summary = getConversationSummary(ctx.from.id);
 
     if (history.length === 0) {
       ctx.reply('📊 **No History Found**\n\nStart by designing some automata! Try:\n• Click "🔧 Design FA"\n• Send an automaton definition\n• Use AI help with questions', { parse_mode: 'Markdown' });
       return;
     }
 
-    let historyText = '📊 **Your Recent Automata:**\n\n';
-    history.forEach((item, index) => {
-      historyText += `${index + 1}. **${item.operation}** - ${item.date.toDateString()}\n`;
-      if (item.input && item.input.states) {
-        const inputStates = item.input.states.length;
-        const outputStates = item.output && item.output.states ? item.output.states.length : inputStates;
-        historyText += `   States: ${inputStates} → ${outputStates}\n`;
+    // Format comprehensive history message
+    let historyMessage = `📊 **Your Conversation History**\n\n`;
+
+    // Add summary statistics
+    historyMessage += `**📈 Session Summary:**\n`;
+    historyMessage += `• Total interactions: ${summary.totalEntries}\n`;
+    historyMessage += `• User inputs: ${summary.userInputs}\n`;
+    historyMessage += `• Bot responses: ${summary.botResponses}\n`;
+    historyMessage += `• Exercises completed: ${summary.exercises}\n`;
+
+    if (Object.keys(summary.operations).length > 0) {
+      historyMessage += `\n**🔧 Operations Used:**\n`;
+      Object.entries(summary.operations).forEach(([op, count]) => {
+        const opName = op.replace('_', ' ').toUpperCase();
+        historyMessage += `• ${opName}: ${count} times\n`;
+      });
+    }
+
+    historyMessage += `\n**📝 Recent Activity:**\n`;
+
+    // Show recent history entries
+    history.slice(0, 10).forEach((entry, index) => {
+      const time = new Date(entry.timestamp).toLocaleTimeString();
+      const emoji = entry.type === 'USER_INPUT' ? '👤' :
+                   entry.type === 'BOT_RESPONSE' ? '🤖' : '📚';
+
+      let description = '';
+      if (entry.type === 'USER_INPUT') {
+        description = entry.operation ? entry.operation.replace('_', ' ') : 'question';
+      } else if (entry.type === 'BOT_RESPONSE') {
+        description = entry.result?.success ? 'successful response' : 'error response';
+      } else if (entry.type === 'EXERCISE') {
+        description = `${entry.exerciseType} exercise`;
       }
-      historyText += '\n';
+
+      historyMessage += `${emoji} ${time} - ${description}\n`;
     });
 
-    ctx.reply(historyText, { parse_mode: 'Markdown' });
+    if (history.length > 10) {
+      historyMessage += `\n... and ${history.length - 10} more entries`;
+    }
+
+    ctx.reply(historyMessage, { parse_mode: 'Markdown' });
+
   } catch (error) {
     console.error('History error:', error);
     ctx.reply('❌ **Error retrieving history**\n\nThis might be a temporary issue. Try again later or contact support.', { parse_mode: 'Markdown' });
