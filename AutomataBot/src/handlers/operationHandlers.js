@@ -14,7 +14,7 @@ import { minimizeDFA } from '../algorithms/dfaMinimization.js';
 import { explainAutomataStep } from '../services/aiService.js';
 import { saveToDatabase } from '../config/database.js';
 import { sendFormattedResult, formatTestResult, formatErrorMessage } from '../utils/messageFormatter.js';
-import { updateUserSession } from '../utils/sessionManager.js';
+import { updateUserSession, addUserInputToHistory, addBotResponseToHistory } from '../utils/sessionManager.js';
 import { generateAutomatonImage, generateComparisonImage, generateSimulationImage, cleanupTempImages } from '../services/imageService.js';
 import fs from 'fs-extra';
 
@@ -83,6 +83,12 @@ export async function handleFADefinition(ctx, session, text) {
   try {
     console.log(`🔧 [FA DEFINITION] Processing automaton for user ${ctx.from.id}`);
 
+    // Add user input to history
+    const inputId = addUserInputToHistory(ctx.from.id, text, 'design_fa', {
+      inputLength: text.length,
+      linesCount: text.split('\n').length
+    });
+
     // Show typing indicator
     await ctx.telegram.sendChatAction(ctx.chat.id, 'typing');
 
@@ -91,6 +97,10 @@ export async function handleFADefinition(ctx, session, text) {
 
     if (!calculationResult.success) {
       console.log(`❌ [FA DEFINITION] Validation failed:`, calculationResult.error);
+
+      // Clear session state on error
+      updateUserSession(ctx.from.id, { waitingFor: null });
+
       ctx.reply(formatErrorMessage('Invalid Format', calculationResult.error), { parse_mode: 'Markdown' });
       return;
     }
@@ -155,6 +165,13 @@ export async function handleFADefinition(ctx, session, text) {
 
       ctx.reply(detailedAnalysis, { parse_mode: 'Markdown' });
 
+      // Add bot response to history
+      addBotResponseToHistory(ctx.from.id, detailedAnalysis, 'design_fa', {
+        ...calculationResult,
+        hasImage: true,
+        imagePath: imagePath
+      }, inputId);
+
       // Clean up the image file
       setTimeout(async () => {
         try {
@@ -173,6 +190,11 @@ export async function handleFADefinition(ctx, session, text) {
       ctx.reply(`✅ **Automaton Loaded Successfully!**\n\n🔍 **Type:** ${automatonType}\n📊 **States:** ${analysis.stateCount}\n🔤 **Alphabet:** ${automaton.alphabet.join(', ')}\n\n**Analysis:**\n${explanation}`, { parse_mode: 'Markdown' });
     }
   } catch (error) {
+    console.error('❌ [FA DEFINITION] Unexpected error:', error);
+
+    // Clear session state on unexpected error
+    updateUserSession(ctx.from.id, { waitingFor: null });
+
     ctx.reply(formatErrorMessage('Invalid automaton format', 'Please try again or ask for help'), { parse_mode: 'Markdown' });
   }
 }
@@ -196,6 +218,13 @@ export async function handleTestInput(ctx, session, text) {
     hasFA: !!session.currentFA,
     waitingFor: session.waitingFor,
     faStates: session.currentFA ? session.currentFA.states?.length : 0
+  });
+
+  // Add user input to history
+  const inputId = addUserInputToHistory(ctx.from.id, text, 'test_input', {
+    testString: text,
+    hasAutomaton: !!session.currentFA,
+    automatonType: session.currentFA ? 'loaded' : 'none'
   });
 
   // Ensure user has loaded an automaton first
@@ -225,6 +254,12 @@ Then come back to test strings!`;
 
     ctx.reply(errorMessage, { parse_mode: 'Markdown' });
 
+    // Add error response to history
+    addBotResponseToHistory(ctx.from.id, errorMessage, 'test_input', {
+      success: false,
+      error: 'No automaton loaded'
+    }, inputId);
+
     // Clear the waiting state since we can't proceed
     updateUserSession(ctx.from.id, { waitingFor: null });
     return;
@@ -238,6 +273,9 @@ Then come back to test strings!`;
   const calculationResult = calculateInputTest(session.currentFA, text);
 
   if (!calculationResult.success) {
+    // Clear session state on error
+    updateUserSession(ctx.from.id, { waitingFor: null });
+
     ctx.reply(formatErrorMessage('Input Test Error', calculationResult.error), { parse_mode: 'Markdown' });
     return;
   }
@@ -286,6 +324,13 @@ Then come back to test strings!`;
 
     ctx.reply(detailedExplanation, { parse_mode: 'Markdown' });
 
+    // Add bot response to history
+    addBotResponseToHistory(ctx.from.id, detailedExplanation, 'test_input', {
+      ...calculationResult,
+      hasImage: true,
+      imagePath: imagePath
+    }, inputId);
+
     // Clean up the image file
     setTimeout(async () => {
       try {
@@ -330,6 +375,9 @@ export async function handleFATypeCheck(ctx, session, text) {
     const calculationResult = calculateFAType(text);
 
     if (!calculationResult.success) {
+      // Clear session state on error
+      updateUserSession(ctx.from.id, { waitingFor: null });
+
       ctx.reply(formatErrorMessage('Type Analysis Error', calculationResult.error), { parse_mode: 'Markdown' });
       return;
     }
@@ -400,6 +448,11 @@ export async function handleFATypeCheck(ctx, session, text) {
 
     updateUserSession(ctx.from.id, { waitingFor: null });
   } catch (error) {
+    console.error('❌ [FA TYPE CHECK] Unexpected error:', error);
+
+    // Clear session state on unexpected error
+    updateUserSession(ctx.from.id, { waitingFor: null });
+
     ctx.reply(formatErrorMessage('Invalid automaton format'), { parse_mode: 'Markdown' });
   }
 }
@@ -426,6 +479,9 @@ export async function handleNFAConversion(ctx, session, text) {
     const calculationResult = calculateNFAToDFA(text);
 
     if (!calculationResult.success) {
+      // Clear session state on error
+      updateUserSession(ctx.from.id, { waitingFor: null });
+
       ctx.reply(formatErrorMessage('NFA Conversion Error', calculationResult.error), { parse_mode: 'Markdown' });
       return;
     }
@@ -585,6 +641,9 @@ export async function handleDFAMinimization(ctx, session, text) {
       const calculationResult = calculateDFAMinimization(text);
 
       if (!calculationResult.success) {
+        // Clear session state on error
+        updateUserSession(ctx.from.id, { waitingFor: null });
+
         ctx.reply(formatErrorMessage('DFA Minimization Error', calculationResult.error), { parse_mode: 'Markdown' });
         return;
       }
